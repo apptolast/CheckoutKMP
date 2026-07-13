@@ -1,0 +1,74 @@
+# ---------------------------------------------------------------------------
+# Gradle
+# ---------------------------------------------------------------------------
+.gradle/
+**/build/
+!src/**/build/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# ---------------------------------------------------------------------------
+# Kotlin / Kotlin Multiplatform
+# ---------------------------------------------------------------------------
+.kotlin/
+*.klib
+
+# ---------------------------------------------------------------------------
+# Android
+# ---------------------------------------------------------------------------
+local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+captures/
+.externalNativeBuild/
+.cxx/
+release/
+proguard/
+lint/
+
+# ---------------------------------------------------------------------------
+# IntelliJ IDEA / Android Studio
+# Keep shareable config, ignore user/machine-specific bits.
+# ---------------------------------------------------------------------------
+*.iml
+.idea/*
+!.idea/codeStyles/
+!.idea/codeStyles/**
+!.idea/inspectionProfiles/
+!.idea/inspectionProfiles/**
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/contentModel.xml
+.idea/**/gradle.xml
+.idea/**/libraries
+.idea/caches/
+.idea/modules.xml
+.idea/*.iml
+.idea/deploymentTargetDropDown.xml
+.idea/deploymentTargetSelector.xml
+
+# ---------------------------------------------------------------------------
+# Xcode / iOS (targets prepared but currently disabled)
+# ---------------------------------------------------------------------------
+**/xcuserdata/
+**/*.xcuserstate
+**/xcshareddata/WorkspaceSettings.xcsettings
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+
+# ---------------------------------------------------------------------------
+# OS / misc
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+node_modules/
+*.log
