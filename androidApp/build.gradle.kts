@@ -32,6 +32,10 @@ dependencies {
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
+
+    // Unit tests (JVM)
+    testImplementation(libs.kotlin.testJunit)
+    testImplementation(libs.koin.test)
 }
 
 android {
