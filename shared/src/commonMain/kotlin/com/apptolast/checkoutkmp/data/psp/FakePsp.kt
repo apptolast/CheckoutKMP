@@ -18,10 +18,10 @@ import kotlin.uuid.Uuid
  * PCI note: only tokens/last4 reach this class via [PaymentRequest]; no PAN is ever handled here.
  */
 class FakePsp(
-    var scenario: PspScenario = PspScenario.APPROVED,
+    override var scenario: PspScenario = PspScenario.APPROVED,
     private val latency: Duration = 0.milliseconds,
     private val validOtp: String = "123456",
-) : Psp {
+) : Psp, PspScenarioController {
 
     private val ledger = mutableMapOf<IdempotencyKey, PspResponse>()
 

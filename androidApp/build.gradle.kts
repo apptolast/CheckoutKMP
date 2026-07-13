@@ -36,6 +36,7 @@ dependencies {
     // Unit tests (JVM)
     testImplementation(libs.kotlin.testJunit)
     testImplementation(libs.koin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 android {

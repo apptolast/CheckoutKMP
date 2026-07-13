@@ -1,5 +1,6 @@
 package com.apptolast.checkoutkmp.presentation
 
+import com.apptolast.checkoutkmp.data.psp.PspScenario
 import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.Receipt
@@ -19,6 +20,7 @@ enum class MethodOption(val label: String) {
 data class CheckoutState(
     val amount: Amount,
     val method: MethodOption = MethodOption.CARD,
+    val scenario: PspScenario = PspScenario.APPROVED,
     val status: CheckoutStatus = CheckoutStatus.Editing,
 ) {
     val isProcessing: Boolean get() = status is CheckoutStatus.Processing
@@ -32,8 +34,15 @@ sealed interface CheckoutStatus {
     /** A payment call is in flight. */
     data object Processing : CheckoutStatus
 
-    /** 3D Secure required; the challenge UI is built in phase 5. */
-    data class RequiresSca(val challenge: ScaChallenge) : CheckoutStatus
+    /**
+     * 3D Secure required. [isVerifying] is true while an OTP is being checked; [otpError] holds the
+     * inline message after a wrong code so the user can retry without losing the challenge.
+     */
+    data class RequiresSca(
+        val challenge: ScaChallenge,
+        val otpError: String? = null,
+        val isVerifying: Boolean = false,
+    ) : CheckoutStatus
 
     /** Terminal success. */
     data class Approved(val receipt: Receipt) : CheckoutStatus

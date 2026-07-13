@@ -2,13 +2,16 @@ package com.apptolast.checkoutkmp.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.apptolast.checkoutkmp.data.psp.PspScenarioController
 import com.apptolast.checkoutkmp.data.tokenizer.CardTokenizer
 import com.apptolast.checkoutkmp.data.tokenizer.RawCard
 import com.apptolast.checkoutkmp.data.tokenizer.TokenizationResult
 import com.apptolast.checkoutkmp.domain.model.IdempotencyKey
+import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.PaymentMethod
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
 import com.apptolast.checkoutkmp.domain.model.PaymentState
+import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,25 +21,50 @@ import kotlinx.coroutines.launch
 
 /**
  * MVI ViewModel for the checkout screen. Reduces [CheckoutIntent] + current state into a new
- * [CheckoutState] by driving the shared [ProcessPaymentUseCase].
+ * [CheckoutState] by driving the shared [ProcessPaymentUseCase] and [CompleteScaUseCase].
  *
  * The raw card only appears as a local `val` inside [submit]; it is tokenized and then out of scope.
- * Nothing sensitive is ever written to [state].
+ * The pending [PaymentRequest] kept for SCA is PAN-free, so retaining it is safe.
  */
 class CheckoutViewModel(
     private val processPayment: ProcessPaymentUseCase,
+    private val completeSca: CompleteScaUseCase,
     private val tokenizer: CardTokenizer,
+    private val scenarioController: PspScenarioController,
     initialState: CheckoutState,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(initialState)
     val state: StateFlow<CheckoutState> = _state.asStateFlow()
 
+    /** The in-flight request, reused (same IdempotencyKey) to complete SCA. Never contains a PAN. */
+    private var pendingRequest: PaymentRequest? = null
+
+    init {
+        scenarioController.scenario = initialState.scenario
+    }
+
     fun onIntent(intent: CheckoutIntent) {
         when (intent) {
             is CheckoutIntent.SelectMethod -> _state.update { it.copy(method = intent.option) }
+
+            is CheckoutIntent.SelectScenario -> {
+                scenarioController.scenario = intent.scenario
+                _state.update { it.copy(scenario = intent.scenario) }
+            }
+
             is CheckoutIntent.Submit -> submit(intent.card)
-            CheckoutIntent.Reset -> _state.update { it.copy(status = CheckoutStatus.Editing) }
+            is CheckoutIntent.SubmitOtp -> verifyOtp(intent.otp)
+
+            CheckoutIntent.CancelSca -> {
+                pendingRequest = null
+                _state.update { it.copy(status = CheckoutStatus.Failed(PaymentError.Cancelled)) }
+            }
+
+            CheckoutIntent.Reset -> {
+                pendingRequest = null
+                _state.update { it.copy(status = CheckoutStatus.Editing) }
+            }
         }
     }
 
@@ -52,11 +80,45 @@ class CheckoutViewModel(
                     method = PaymentMethod.Card(tokenized.token),
                     idempotencyKey = IdempotencyKey.random(),
                 )
+                pendingRequest = request
                 viewModelScope.launch {
                     processPayment(request).collect { paymentState ->
                         _state.update { it.copy(status = paymentState.toCheckoutStatus()) }
                     }
                 }
+            }
+        }
+    }
+
+    private fun verifyOtp(otp: String) {
+        val request = pendingRequest ?: return
+        val challenge = (_state.value.status as? CheckoutStatus.RequiresSca)?.challenge ?: return
+
+        viewModelScope.launch {
+            completeSca(request, otp).collect { paymentState ->
+                val newStatus = when (paymentState) {
+                    PaymentState.Idle,
+                    PaymentState.Processing ->
+                        CheckoutStatus.RequiresSca(challenge, isVerifying = true)
+
+                    is PaymentState.Approved -> {
+                        pendingRequest = null
+                        CheckoutStatus.Approved(paymentState.receipt)
+                    }
+
+                    is PaymentState.RequiresSca ->
+                        CheckoutStatus.RequiresSca(paymentState.challenge)
+
+                    is PaymentState.Failed ->
+                        if (paymentState.error is PaymentError.ScaFailed) {
+                            // Keep the challenge so the user can re-enter the code.
+                            CheckoutStatus.RequiresSca(challenge, otpError = "Incorrect code, try again.")
+                        } else {
+                            pendingRequest = null
+                            CheckoutStatus.Failed(paymentState.error)
+                        }
+                }
+                _state.update { it.copy(status = newStatus) }
             }
         }
     }

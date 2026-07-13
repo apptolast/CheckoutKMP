@@ -8,10 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -26,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.apptolast.checkoutkmp.data.psp.PspScenario
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.Receipt
 import com.apptolast.checkoutkmp.presentation.CheckoutIntent
@@ -63,8 +67,22 @@ fun CheckoutScreen(
                     onDone = { onIntent(CheckoutIntent.Reset) },
                 )
 
+                is CheckoutStatus.RequiresSca -> ScaChallengeScreen(
+                    challenge = status.challenge,
+                    otpError = status.otpError,
+                    isVerifying = status.isVerifying,
+                    onVerify = { onIntent(CheckoutIntent.SubmitOtp(it)) },
+                    onCancel = { onIntent(CheckoutIntent.CancelSca) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
                 else -> {
                     OrderSummary(state)
+                    ScenarioSelector(
+                        selected = state.scenario,
+                        enabled = !state.isProcessing,
+                        onSelect = { onIntent(CheckoutIntent.SelectScenario(it)) },
+                    )
                     MethodSelector(
                         selected = state.method,
                         enabled = !state.isProcessing,
@@ -94,6 +112,40 @@ private fun OrderSummary(state: CheckoutState) {
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScenarioSelector(
+    selected: PspScenario,
+    enabled: Boolean,
+    onSelect: (PspScenario) -> Unit,
+) {
+    Column {
+        Text("Test scenario (demo)", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PspScenario.entries.forEach { scenario ->
+                FilterChip(
+                    selected = scenario == selected,
+                    enabled = enabled,
+                    onClick = { onSelect(scenario) },
+                    label = { Text(scenario.demoLabel) },
+                )
+            }
+        }
+    }
+}
+
+private val PspScenario.demoLabel: String
+    get() = when (this) {
+        PspScenario.APPROVED -> "Approved"
+        PspScenario.NEEDS_SCA -> "3D Secure"
+        PspScenario.DECLINED -> "Declined"
+        PspScenario.NETWORK_ERROR -> "Network error"
+    }
 
 @Composable
 private fun MethodSelector(
