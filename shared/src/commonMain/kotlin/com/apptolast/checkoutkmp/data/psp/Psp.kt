@@ -38,5 +38,9 @@ class PspException(
     enum class Kind { NETWORK, TIMEOUT, RATE_LIMITED }
 }
 
-/** Behaviour the [FakePsp] should simulate, wired via DI or toggled in the UI for the demo. */
-enum class PspScenario { APPROVED, NEEDS_SCA, DECLINED, NETWORK_ERROR }
+/**
+ * Behaviour the [FakePsp] should simulate, wired via DI or toggled in the UI for the demo.
+ * [NETWORK_ERROR], [TIMEOUT] and [RATE_LIMITED] are transport failures (transient) that the retry
+ * decorator may retry; [DECLINED] is a business decision that must not be retried.
+ */
+enum class PspScenario { APPROVED, NEEDS_SCA, DECLINED, NETWORK_ERROR, TIMEOUT, RATE_LIMITED }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -84,6 +85,12 @@ fun CheckoutScreen(
                     onVerify = { onIntent(CheckoutIntent.SubmitOtp(it)) },
                     onCancel = { onIntent(CheckoutIntent.CancelSca) },
                     modifier = Modifier.fillMaxWidth(),
+                )
+
+                is CheckoutStatus.Failed -> FailureView(
+                    error = status.error,
+                    onRetry = { onIntent(CheckoutIntent.Retry) },
+                    onStartOver = { onIntent(CheckoutIntent.Reset) },
                 )
 
                 else -> {
@@ -159,6 +166,8 @@ private val PspScenario.demoLabel: String
         PspScenario.NEEDS_SCA -> "3D Secure"
         PspScenario.DECLINED -> "Declined"
         PspScenario.NETWORK_ERROR -> "Network error"
+        PspScenario.TIMEOUT -> "Timeout"
+        PspScenario.RATE_LIMITED -> "Rate limited"
     }
 
 @Composable
@@ -191,18 +200,13 @@ private fun MethodSelector(
 }
 
 /**
- * A single, always-present status line. Because it is a [LiveRegionMode] node that stays in the
- * tree, TalkBack announces its text whenever it changes — Assertive for failures (interrupts),
- * Polite for progress. Errors are conveyed by text, not colour alone.
+ * A single, always-present status line for the editing/processing states. It is a Polite
+ * [LiveRegionMode] node that stays in the tree, so TalkBack announces progress when it appears.
+ * (Terminal failures have their own [FailureView] screen.)
  */
 @Composable
 private fun StatusLine(status: CheckoutStatus) {
-    val message = when (status) {
-        CheckoutStatus.Processing -> "Processing payment…"
-        is CheckoutStatus.Failed -> errorMessage(status.error)
-        else -> ""
-    }
-    val assertive = status is CheckoutStatus.Failed
+    val message = if (status is CheckoutStatus.Processing) "Processing payment…" else ""
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -215,13 +219,48 @@ private fun StatusLine(status: CheckoutStatus) {
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (assertive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .weight(1f)
-                .semantics {
-                    liveRegion = if (assertive) LiveRegionMode.Assertive else LiveRegionMode.Polite
-                },
+                .semantics { liveRegion = LiveRegionMode.Polite },
         )
+    }
+}
+
+/**
+ * Terminal failure screen with a per-type accessible message. Transient failures (already retried
+ * under the hood) offer a manual "Retry" that reuses the same IdempotencyKey; non-transient ones
+ * only offer starting over with a different card.
+ */
+@Composable
+private fun FailureView(
+    error: PaymentError,
+    onRetry: () -> Unit,
+    onStartOver: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            "Payment failed",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.semantics {
+                heading()
+                liveRegion = LiveRegionMode.Assertive
+            },
+        )
+        Text(errorMessage(error), style = MaterialTheme.typography.bodyLarge)
+
+        if (error.isTransient) {
+            Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+                Text("Retry")
+            }
+        }
+        OutlinedButton(onClick = onStartOver, modifier = Modifier.fillMaxWidth()) {
+            Text("Start over")
+        }
     }
 }
 

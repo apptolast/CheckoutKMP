@@ -24,6 +24,9 @@ sealed interface CheckoutIntent {
     /** The user cancelled the 3D Secure challenge. */
     data object CancelSca : CheckoutIntent
 
+    /** Retry a transient failure, reusing the same pending request (same IdempotencyKey). */
+    data object Retry : CheckoutIntent
+
     /** Return to the editing state after a terminal result. */
     data object Reset : CheckoutIntent
 }

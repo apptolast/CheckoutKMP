@@ -53,6 +53,24 @@ class PaymentRepositoryImplTest {
     }
 
     @Test
+    fun timeout_failure_maps_to_transient_timeout_error() = runTest {
+        val (_, repo) = repositoryWith(PspScenario.TIMEOUT)
+
+        val error = assertIs<PaymentResult.Failed>(repo.authorize(Fixtures.request())).error
+        assertEquals(PaymentError.Timeout, error)
+        assertTrue(error.isTransient)
+    }
+
+    @Test
+    fun rate_limited_failure_maps_to_transient_rate_limited_error() = runTest {
+        val (_, repo) = repositoryWith(PspScenario.RATE_LIMITED)
+
+        val error = assertIs<PaymentResult.Failed>(repo.authorize(Fixtures.request())).error
+        assertEquals(PaymentError.RateLimited, error)
+        assertTrue(error.isTransient)
+    }
+
+    @Test
     fun needs_sca_scenario_returns_a_challenge() = runTest {
         val (_, repo) = repositoryWith(PspScenario.NEEDS_SCA)
 

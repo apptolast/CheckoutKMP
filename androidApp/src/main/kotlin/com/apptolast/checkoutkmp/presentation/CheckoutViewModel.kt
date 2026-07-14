@@ -61,6 +61,8 @@ class CheckoutViewModel(
                 _state.update { it.copy(status = CheckoutStatus.Failed(PaymentError.Cancelled)) }
             }
 
+            CheckoutIntent.Retry -> retry()
+
             CheckoutIntent.Reset -> {
                 pendingRequest = null
                 _state.update { it.copy(status = CheckoutStatus.Editing) }
@@ -81,11 +83,30 @@ class CheckoutViewModel(
                     idempotencyKey = IdempotencyKey.random(),
                 )
                 pendingRequest = request
-                viewModelScope.launch {
-                    processPayment(request).collect { paymentState ->
-                        _state.update { it.copy(status = paymentState.toCheckoutStatus()) }
-                    }
-                }
+                authorize(request)
+            }
+        }
+    }
+
+    /**
+     * Re-run a transient failure with the **same** pending request/IdempotencyKey. Non-transient
+     * failures (Declined, InvalidCard) have no safe automatic retry, so we return to editing.
+     */
+    private fun retry() {
+        val failed = _state.value.status as? CheckoutStatus.Failed
+        val request = pendingRequest
+        if (failed != null && failed.error.isTransient && request != null) {
+            authorize(request)
+        } else {
+            pendingRequest = null
+            _state.update { it.copy(status = CheckoutStatus.Editing) }
+        }
+    }
+
+    private fun authorize(request: PaymentRequest) {
+        viewModelScope.launch {
+            processPayment(request).collect { paymentState ->
+                _state.update { it.copy(status = paymentState.toCheckoutStatus()) }
             }
         }
     }

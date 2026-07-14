@@ -33,9 +33,7 @@ class FakePsp(
         delay(latency)
 
         // A transport failure never produces a business decision and is not cached.
-        if (scenario == PspScenario.NETWORK_ERROR) {
-            throw PspException(PspException.Kind.NETWORK, "Simulated network failure")
-        }
+        transientKind(scenario)?.let { throw PspException(it, "Simulated $it failure") }
 
         // Idempotent replay: same key -> same response, no new charge.
         ledger[request.idempotencyKey]?.let { return it }
@@ -55,10 +53,19 @@ class FakePsp(
                 code = "insufficient_funds",
                 message = "The card was declined",
             )
-            PspScenario.NETWORK_ERROR -> error("handled above")
+            PspScenario.NETWORK_ERROR,
+            PspScenario.TIMEOUT,
+            PspScenario.RATE_LIMITED -> error("handled above")
         }
         ledger[request.idempotencyKey] = response
         return response
+    }
+
+    private fun transientKind(scenario: PspScenario): PspException.Kind? = when (scenario) {
+        PspScenario.NETWORK_ERROR -> PspException.Kind.NETWORK
+        PspScenario.TIMEOUT -> PspException.Kind.TIMEOUT
+        PspScenario.RATE_LIMITED -> PspException.Kind.RATE_LIMITED
+        else -> null
     }
 
     override suspend fun completeSca(request: PaymentRequest, otp: String): PspResponse {
