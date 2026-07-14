@@ -317,15 +317,19 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
     }
 }
 
-/** Maps a domain [PaymentError] to its localized, user-facing message. */
+/**
+ * Maps a domain [PaymentError] to its localized, user-facing message. The technical `reason`
+ * carried by some errors is intentionally NOT shown — it's a diagnostic code (e.g. `insufficient_funds`),
+ * not localized copy — so users only ever see fully translated messages.
+ */
 @Composable
 private fun errorMessage(error: PaymentError): String = when (error) {
-    is PaymentError.Declined -> stringResource(R.string.error_declined, error.reason)
-    is PaymentError.InvalidCard -> stringResource(R.string.error_invalid_card, error.reason)
+    is PaymentError.Declined -> stringResource(R.string.error_declined)
+    is PaymentError.InvalidCard -> stringResource(R.string.error_invalid_card)
     PaymentError.Network -> stringResource(R.string.error_network)
     PaymentError.Timeout -> stringResource(R.string.error_timeout)
     PaymentError.RateLimited -> stringResource(R.string.error_rate_limited)
-    is PaymentError.ScaFailed -> stringResource(R.string.error_sca_failed, error.reason)
+    is PaymentError.ScaFailed -> stringResource(R.string.error_sca_failed)
     PaymentError.Cancelled -> stringResource(R.string.error_cancelled)
     is PaymentError.Unknown -> stringResource(R.string.error_unknown)
 }

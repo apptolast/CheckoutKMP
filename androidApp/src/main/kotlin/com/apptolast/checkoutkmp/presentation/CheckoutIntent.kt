@@ -1,7 +1,7 @@
 package com.apptolast.checkoutkmp.presentation
 
 import com.apptolast.checkoutkmp.data.psp.PspScenario
-import com.apptolast.checkoutkmp.data.tokenizer.RawCard
+import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
 
 /** User intents for the checkout screen (the "I" in MVI). */
 sealed interface CheckoutIntent {

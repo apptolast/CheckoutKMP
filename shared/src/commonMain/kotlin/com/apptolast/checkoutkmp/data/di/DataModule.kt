@@ -6,9 +6,9 @@ import com.apptolast.checkoutkmp.data.psp.PspScenario
 import com.apptolast.checkoutkmp.data.psp.PspScenarioController
 import com.apptolast.checkoutkmp.data.repository.PaymentRepositoryImpl
 import com.apptolast.checkoutkmp.data.repository.RetryingPaymentRepository
-import com.apptolast.checkoutkmp.data.tokenizer.CardTokenizer
 import com.apptolast.checkoutkmp.data.tokenizer.FakeCardTokenizer
 import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
+import com.apptolast.checkoutkmp.domain.tokenizer.CardTokenizer
 import org.koin.dsl.binds
 import org.koin.dsl.module
 import kotlin.time.Duration.Companion.milliseconds

@@ -3,9 +3,9 @@ package com.apptolast.checkoutkmp.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.apptolast.checkoutkmp.data.psp.PspScenarioController
-import com.apptolast.checkoutkmp.data.tokenizer.CardTokenizer
-import com.apptolast.checkoutkmp.data.tokenizer.RawCard
-import com.apptolast.checkoutkmp.data.tokenizer.TokenizationResult
+import com.apptolast.checkoutkmp.domain.tokenizer.CardTokenizer
+import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
+import com.apptolast.checkoutkmp.domain.tokenizer.TokenizationResult
 import com.apptolast.checkoutkmp.domain.model.IdempotencyKey
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.PaymentMethod

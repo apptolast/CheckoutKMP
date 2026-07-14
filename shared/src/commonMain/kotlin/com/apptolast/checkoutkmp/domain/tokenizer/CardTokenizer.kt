@@ -1,4 +1,4 @@
-package com.apptolast.checkoutkmp.data.tokenizer
+package com.apptolast.checkoutkmp.domain.tokenizer
 
 import com.apptolast.checkoutkmp.domain.model.CardExpiry
 import com.apptolast.checkoutkmp.domain.model.CardToken
@@ -18,7 +18,8 @@ sealed interface TokenizationResult {
 }
 
 /**
- * Exchanges raw card data for a PCI-safe [CardToken].
+ * Domain contract that exchanges raw card data for a PCI-safe [CardToken]. The concrete tokenizer
+ * lives in the data layer; the domain and presentation only depend on this interface.
  *
  * **Golden rule:** the PAN and CVV are validated and then discarded — never logged, never stored,
  * never placed in the returned token. Only [CardToken.last4] and the brand survive.

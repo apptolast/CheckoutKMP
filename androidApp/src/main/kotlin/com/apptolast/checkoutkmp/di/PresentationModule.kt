@@ -4,7 +4,7 @@ import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.Currency
 import com.apptolast.checkoutkmp.presentation.CheckoutState
 import com.apptolast.checkoutkmp.presentation.CheckoutViewModel
-import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /** Demo order total shown on the checkout screen (€49.99). */

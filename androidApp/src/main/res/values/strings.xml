@@ -59,16 +59,13 @@
     <string name="action_verify">Verify</string>
     <string name="action_cancel">Cancel</string>
 
-    <!-- Payment error messages (mapped from domain PaymentError) -->
-    <!-- %1$s = decline reason -->
-    <string name="error_declined">Your card was declined (%1$s).</string>
-    <!-- %1$s = validation reason -->
-    <string name="error_invalid_card">Card details are invalid: %1$s.</string>
+    <!-- Payment error messages (mapped from domain PaymentError; fully localized, no raw codes) -->
+    <string name="error_declined">Your card was declined. Please try another card.</string>
+    <string name="error_invalid_card">Card details are invalid. Please check and try again.</string>
     <string name="error_network">Network problem. Please try again.</string>
     <string name="error_timeout">The request timed out. Please try again.</string>
     <string name="error_rate_limited">Too many attempts. Please wait a moment.</string>
-    <!-- %1$s = failure reason -->
-    <string name="error_sca_failed">Authentication failed (%1$s).</string>
+    <string name="error_sca_failed">Authentication failed. Please try again.</string>
     <string name="error_cancelled">Payment cancelled.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>
 </resources>

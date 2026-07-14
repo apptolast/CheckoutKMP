@@ -59,16 +59,13 @@
     <string name="action_verify">Verificar</string>
     <string name="action_cancel">Cancelar</string>
 
-    <!-- Mensajes de error de pago (mapeados desde el dominio PaymentError) -->
-    <!-- %1$s = motivo del rechazo -->
-    <string name="error_declined">Tu tarjeta fue rechazada (%1$s).</string>
-    <!-- %1$s = motivo de validación -->
-    <string name="error_invalid_card">Los datos de la tarjeta no son válidos: %1$s.</string>
+    <!-- Mensajes de error de pago (mapeados desde el dominio PaymentError; localizados, sin códigos crudos) -->
+    <string name="error_declined">Tu tarjeta fue rechazada. Prueba con otra tarjeta.</string>
+    <string name="error_invalid_card">Los datos de la tarjeta no son válidos. Revísalos e inténtalo de nuevo.</string>
     <string name="error_network">Problema de red. Inténtalo de nuevo.</string>
     <string name="error_timeout">La solicitud tardó demasiado. Inténtalo de nuevo.</string>
     <string name="error_rate_limited">Demasiados intentos. Espera un momento.</string>
-    <!-- %1$s = motivo del fallo -->
-    <string name="error_sca_failed">La autenticación falló (%1$s).</string>
+    <string name="error_sca_failed">La autenticación falló. Inténtalo de nuevo.</string>
     <string name="error_cancelled">Pago cancelado.</string>
     <string name="error_unknown">Algo salió mal. Inténtalo de nuevo.</string>
 </resources>

@@ -2,7 +2,7 @@ package com.apptolast.checkoutkmp.di
 
 import com.apptolast.checkoutkmp.data.di.dataModule
 import com.apptolast.checkoutkmp.data.psp.PspScenarioController
-import com.apptolast.checkoutkmp.data.tokenizer.CardTokenizer
+import com.apptolast.checkoutkmp.domain.tokenizer.CardTokenizer
 import com.apptolast.checkoutkmp.domain.di.domainModule
 import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
 import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase

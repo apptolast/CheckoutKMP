@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CheckoutKMP — Guía de construcción</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F6F3; --panel:#FFFFFF; --ink:#14181B; --ink-soft:#525A60; --ink-faint:#8A9299;
+    --line:#E4E6E1; --line-strong:#D3D6CF;
+    --green:#0F7A54; --green-deep:#0B5C40; --green-soft:#E6F1EB;
+    --amber:#A9660F; --amber-soft:#F6EEDD;
+    --code-bg:#0D1117; --code-ink:#E8EDF2; --code-dim:#8B98A6; --code-green:#79E2B4; --code-amber:#E6C07B; --code-blue:#7FB2E8;
+    --radius:14px; --radius-sm:9px;
+    --font-display:'Archivo',system-ui,-apple-system,sans-serif;
+    --font-body:'Inter',system-ui,-apple-system,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,'SF Mono',monospace;
+    --maxw:1180px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto;} *{animation:none!important;transition:none!important;}}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--font-body);font-size:16px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--green-deep);text-decoration:none;}
+  ::selection{background:var(--green-soft);}
+
+  /* Topbar */
+  .topbar{
+    position:sticky;top:0;z-index:50;background:rgba(245,246,243,.86);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-in{max-width:var(--maxw);margin:0 auto;padding:14px 28px;display:flex;align-items:center;gap:14px;}
+  .brand{font-family:var(--font-display);font-weight:800;letter-spacing:-.02em;font-size:18px;display:flex;align-items:center;gap:10px;}
+  .brand .dot{width:11px;height:11px;border-radius:3px;background:var(--green);display:inline-block;transform:rotate(45deg);}
+  .brand .kt{color:var(--green);}
+  .topbar .tag{font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.14em;border:1px solid var(--line-strong);padding:3px 9px;border-radius:20px;}
+  .topbar .spacer{flex:1;}
+  .topbar .toplink{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-soft);}
+  .topbar .toplink:hover{color:var(--green-deep);}
+  @media(max-width:720px){.topbar .tag,.topbar .toplink{display:none;}}
+
+  /* Hero */
+  .hero{max-width:var(--maxw);margin:0 auto;padding:64px 28px 40px;}
+  .eyebrow{font-family:var(--font-mono);font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--green);margin:0 0 20px;display:flex;align-items:center;gap:12px;}
+  .eyebrow::before{content:"";width:34px;height:1.5px;background:var(--green);display:inline-block;}
+  h1.title{font-family:var(--font-display);font-weight:800;letter-spacing:-.035em;line-height:.98;font-size:clamp(46px,8vw,92px);margin:0;}
+  h1.title .paren{color:var(--green);}
+  .lede{font-size:clamp(17px,2.2vw,21px);color:var(--ink-soft);max-width:640px;margin:22px 0 0;line-height:1.5;}
+  .chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px;}
+  .chip{font-family:var(--font-mono);font-size:12px;letter-spacing:.03em;padding:6px 12px;border-radius:20px;background:var(--panel);border:1px solid var(--line-strong);color:var(--ink-soft);}
+  .chip.hot{background:var(--green);border-color:var(--green);color:#fff;}
+
+  /* Spec receipt */
+  .receipt{margin-top:38px;background:var(--panel);border:1px solid var(--line-strong);border-radius:var(--radius);max-width:560px;overflow:hidden;box-shadow:0 1px 0 rgba(20,24,27,.03),0 18px 40px -30px rgba(20,24,27,.35);}
+  .receipt-top{border-bottom:1.5px dashed var(--line-strong);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);}
+  .receipt-body{padding:6px 20px 16px;}
+  .rrow{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:13px;}
+  .rrow:last-child{border-bottom:none;}
+  .rrow .k{color:var(--ink-faint);letter-spacing:.02em;}
+  .rrow .v{color:var(--ink);text-align:right;font-weight:500;}
+  .rrow .v em{color:var(--green-deep);font-style:normal;}
+
+  /* Layout */
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:20px 28px 100px;display:grid;grid-template-columns:216px 1fr;gap:52px;}
+  @media(max-width:920px){.wrap{grid-template-columns:1fr;gap:0;}}
+  nav.toc{position:sticky;top:88px;align-self:start;font-family:var(--font-mono);font-size:12.5px;line-height:1.5;max-height:calc(100vh - 110px);overflow:auto;}
+  @media(max-width:920px){nav.toc{display:none;}}
+  nav.toc .toc-label{color:var(--ink-faint);text-transform:uppercase;letter-spacing:.16em;font-size:10.5px;margin-bottom:12px;}
+  nav.toc a{display:block;color:var(--ink-soft);padding:5px 0 5px 13px;border-left:2px solid var(--line);transition:all .15s;}
+  nav.toc a:hover{color:var(--ink);border-color:var(--line-strong);}
+  nav.toc a.active{color:var(--green-deep);border-color:var(--green);font-weight:500;}
+
+  main{min-width:0;}
+  section{padding-top:30px;margin-bottom:26px;scroll-margin-top:84px;}
+  .sec-num{font-family:var(--font-mono);font-size:12px;color:var(--green);letter-spacing:.14em;}
+  h2{font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;font-size:clamp(26px,3.4vw,34px);margin:8px 0 6px;line-height:1.1;}
+  h3{font-family:var(--font-display);font-weight:600;font-size:19px;letter-spacing:-.01em;margin:30px 0 8px;}
+  p{margin:12px 0;color:var(--ink);}
+  .muted{color:var(--ink-soft);}
+  strong{font-weight:600;}
+  code:not(pre code){font-family:var(--font-mono);font-size:.86em;background:#EDEFEA;border:1px solid var(--line);padding:1px 6px;border-radius:6px;color:var(--green-deep);}
+
+  ul.clean{list-style:none;padding:0;margin:14px 0;}
+  ul.clean li{position:relative;padding:7px 0 7px 26px;border-bottom:1px solid var(--line);}
+  ul.clean li:last-child{border-bottom:none;}
+  ul.clean li::before{content:"→";position:absolute;left:0;color:var(--green);font-family:var(--font-mono);}
+
+  /* concept cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:14px;margin:18px 0;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px 18px;}
+  .card .term{font-family:var(--font-mono);font-weight:600;font-size:13px;color:var(--green-deep);letter-spacing:.02em;}
+  .card p{margin:7px 0 0;font-size:14px;color:var(--ink-soft);line-height:1.5;}
+
+  /* code */
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:var(--radius-sm);padding:18px 20px;overflow-x:auto;font-family:var(--font-mono);font-size:13px;line-height:1.6;margin:16px 0;position:relative;border:1px solid #1B222B;}
+  pre .cmt{color:var(--code-dim);}
+  pre .kw{color:#FF9EC4;}
+  pre .fn{color:var(--code-blue);}
+  pre .str{color:var(--code-green);}
+  pre .lbl{position:absolute;top:0;right:0;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--code-dim);background:#161D26;border-left:1px solid #232B35;border-bottom:1px solid #232B35;border-bottom-left-radius:8px;padding:4px 10px;}
+
+  /* callouts */
+  .note{border-radius:var(--radius-sm);padding:15px 18px 15px 20px;margin:18px 0;font-size:14.5px;position:relative;border:1px solid;}
+  .note.focus{background:var(--amber-soft);border-color:#E7D4A9;color:#5C420F;}
+  .note.rule{background:var(--green-soft);border-color:#BFDDCC;color:#0B4E38;}
+  .note strong{font-weight:700;}
+  .note .nt{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;display:block;margin-bottom:6px;opacity:.8;}
+
+  /* table */
+  .tw{overflow-x:auto;margin:18px 0;border:1px solid var(--line-strong);border-radius:var(--radius-sm);}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px;}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);background:#FAFBF9;}
+  td:first-child{font-family:var(--font-mono);font-size:12.5px;color:var(--green-deep);white-space:nowrap;}
+  tr:last-child td{border-bottom:none;}
+
+  /* prompt block */
+  .prompt-card{background:var(--code-bg);border:1px solid #232B35;border-radius:var(--radius);overflow:hidden;margin:20px 0;}
+  .prompt-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #232B35;background:#11161D;}
+  .prompt-head .dots{display:flex;gap:6px;}
+  .prompt-head .dots i{width:11px;height:11px;border-radius:50%;display:block;}
+  .prompt-head .dots i:nth-child(1){background:#E06C75;}
+  .prompt-head .dots i:nth-child(2){background:#E5C07B;}
+  .prompt-head .dots i:nth-child(3){background:#79E2B4;}
+  .prompt-head .ph-title{font-family:var(--font-mono);font-size:12px;color:var(--code-dim);letter-spacing:.04em;}
+  .prompt-head .spacer{flex:1;}
+  .copybtn{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#0B0E12;background:var(--code-green);border:none;padding:6px 13px;border-radius:7px;cursor:pointer;font-weight:600;transition:opacity .15s;}
+  .copybtn:hover{opacity:.85;}
+  .copybtn.ok{background:#4FC98A;}
+  .prompt-body{padding:18px 20px;font-family:var(--font-mono);font-size:12.5px;line-height:1.65;color:var(--code-ink);white-space:pre-wrap;overflow-x:auto;}
+  .prompt-body .h{color:var(--code-green);font-weight:600;}
+  .prompt-body .d{color:var(--code-dim);}
+
+  /* timeline */
+  .phase{position:relative;padding:0 0 8px 34px;margin:0;border-left:2px solid var(--line-strong);}
+  .phase:last-child{border-left-color:transparent;}
+  .phase-item{position:relative;padding-bottom:26px;}
+  .phase-item::before{content:attr(data-n);position:absolute;left:-46px;top:-2px;width:24px;height:24px;border-radius:7px;background:var(--panel);border:1.5px solid var(--green);color:var(--green-deep);font-family:var(--font-mono);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;}
+  .phase-item h4{font-family:var(--font-display);font-weight:600;font-size:17px;margin:0 0 4px;}
+  .phase-item .ptxt{font-size:14px;color:var(--ink-soft);margin:0 0 10px;}
+  .mini-prompt{background:#0D1117;border:1px solid #232B35;border-radius:8px;padding:12px 14px;font-family:var(--font-mono);font-size:12px;line-height:1.55;color:#C9D4DF;white-space:pre-wrap;position:relative;}
+  .mini-prompt .mc{position:absolute;top:8px;right:8px;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 28px 60px;border-top:1px solid var(--line);color:var(--ink-faint);font-family:var(--font-mono);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  footer .k{color:var(--green);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <span class="brand"><span class="dot"></span>Checkout<span class="kt">KMP</span></span>
+    <span class="tag">KMP · Pagos</span>
+    <span class="spacer"></span>
+    <a class="toplink" href="#prompt">▸ Prompt para Claude Code</a>
+  </div>
+</div>
+
+<header class="hero">
+  <p class="eyebrow">Guía de construcción · Preparación Inditex</p>
+  <h1 class="title">Checkout<span class="paren">KMP</span></h1>
+  <p class="lede">Un proyecto de prácticas en Kotlin Multiplatform para dominar el terreno de <strong>pagos</strong>: checkout, 3D&nbsp;Secure, tokenización, idempotencia y accesibilidad. Lógica compartida, testeada y lista para defender en entrevista.</p>
+  <div class="chips">
+    <span class="chip hot">Kotlin Multiplatform</span>
+    <span class="chip">Compose · Android</span>
+    <span class="chip">Clean Architecture + MVI</span>
+    <span class="chip">commonMain / commonTest</span>
+  </div>
+
+  <div class="receipt">
+    <div class="receipt-top"><span>· CheckoutKMP ·</span><span>spec v1</span></div>
+    <div class="receipt-body">
+      <div class="rrow"><span class="k">Stack</span><span class="v">Kotlin Multiplatform</span></div>
+      <div class="rrow"><span class="k">UI</span><span class="v">Compose (Android) · <em>iOS opcional</em></span></div>
+      <div class="rrow"><span class="k">Dominio</span><span class="v">commonMain / commonTest</span></div>
+      <div class="rrow"><span class="k">Objetivo</span><span class="v"><em>Inditex — equipo de pagos</em></span></div>
+      <div class="rrow"><span class="k">Regla de oro</span><span class="v">el PAN nunca se loguea</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" id="toc">
+    <div class="toc-label">Contenido</div>
+    <a href="#demuestra">Qué demuestra</a>
+    <a href="#conceptos">Conceptos de pagos</a>
+    <a href="#arquitectura">Arquitectura KMP</a>
+    <a href="#dominio">Diseño del dominio</a>
+    <a href="#errores">Manejo de errores</a>
+    <a href="#tests">Estrategia de tests</a>
+    <a href="#prompt">Prompt · Claude Code</a>
+    <a href="#roadmap">Roadmap por fases</a>
+    <a href="#entrevista">En la entrevista</a>
+  </nav>
+
+  <main>
+    <section id="demuestra">
+      <span class="sec-num">01</span>
+      <h2>Qué demuestra este proyecto</h2>
+      <p>Simula el <strong>checkout y pago de un retail</strong> (tipo Zara/Inditex): carrito → método de pago → tarjeta → 3D&nbsp;Secure → resultado. No es banca core; es exactamente el flujo de cliente que se hace en pagos de e‑commerce. Cada pieza está pensada para que puedas decir <em>“esto lo he montado”</em>:</p>
+      <ul class="clean">
+        <li><strong>Tokenización</strong> de tarjeta PCI‑safe: el número (PAN) nunca se loguea ni se persiste en claro.</li>
+        <li><strong>3D&nbsp;Secure / SCA</strong>: challenge de autenticación reforzada, obligatorio por PSD2 en Europa.</li>
+        <li><strong>Idempotencia</strong>: una misma clave garantiza que un reintento no cobre dos veces.</li>
+        <li><strong>Máquina de estados</strong> del pago y manejo de errores / reintentos con criterio.</li>
+        <li><strong>Accesibilidad</strong> en formularios de pago — tu sello: <code>traversalIndex</code>, <code>liveRegion</code>.</li>
+      </ul>
+    </section>
+
+    <section id="conceptos">
+      <span class="sec-num">02</span>
+      <h2>Conceptos de pagos</h2>
+      <p class="muted">Lo que hay que estudiar no es Kotlin (eso lo dominas), es el vocabulario y los flujos. Con estos seis vas sobrado para una entrevista de cliente.</p>
+      <div class="grid">
+        <div class="card"><span class="term">PCI DSS</span><p>Por qué el PAN no se loguea, no se persiste en claro y se tokeniza.</p></div>
+        <div class="card"><span class="term">PSD2 / SCA</span><p>Autenticación reforzada del cliente. En cliente se traduce en el flujo 3D&nbsp;Secure&nbsp;2.</p></div>
+        <div class="card"><span class="term">PSP / gateway</span><p>El intermediario (Adyen, Stripe, Redsys…) al que se le pide autorizar el pago.</p></div>
+        <div class="card"><span class="term">Tokenización</span><p>Cambiar los datos sensibles de la tarjeta por un token opaco reutilizable.</p></div>
+        <div class="card"><span class="term">Idempotencia</span><p>Misma clave → mismo resultado aunque reintentes. Evita cobros dobles.</p></div>
+        <div class="card"><span class="term">Máquina de estados</span><p>Iniciado → autenticando (3DS) → autorizado → capturado → ok / fallo / reembolso.</p></div>
+      </div>
+    </section>
+
+    <section id="arquitectura">
+      <span class="sec-num">03</span>
+      <h2>Arquitectura KMP</h2>
+      <p>La lógica va a <code>commonMain</code> (compartida); la UI a Android. La suite de tests en <code>commonTest</code> valida la lógica <strong>una sola vez para todos los targets</strong>.</p>
+<pre><span class="lbl">estructura</span>:shared            <span class="cmt">// módulo KMP con la lógica (android; iOS opcional)</span>
+  commonMain
+    domain/         <span class="cmt">// modelos + casos de uso (Kotlin puro) — el corazón</span>
+    data/           <span class="cmt">// PaymentRepository, FakePsp, tokenizer, mappers</span>
+  commonTest        <span class="cmt">// tests de la lógica (corren en todos los targets)</span>
+  androidMain       <span class="cmt">// actual específicos de Android, si hicieran falta</span>
+  iosMain           <span class="cmt">// (opcional, más adelante)</span>
+:androidApp         <span class="cmt">// UI Compose (MVI), navegación, wiring de DI</span>
+(:iosApp)           <span class="cmt">// (opcional) SwiftUI o Compose Multiplatform</span></pre>
+      <p><strong>Reglas:</strong> <code>domain</code> no depende de <code>data</code>; <code>data</code> depende de <code>domain</code>; la UI depende de <code>:shared</code>. DI con Koin. Patrón de UI: MVI (estado inmutable + intents).</p>
+      <h3>Detalles propios de KMP (apréndetelos, suman)</h3>
+      <ul class="clean">
+        <li><strong>UUID</strong> para las idempotency keys: <code>kotlin.uuid.Uuid</code> (stdlib), nada de <code>java.util.UUID</code> en común.</li>
+        <li><strong>Dispatchers</strong>: no uses <code>Dispatchers.Main/IO</code> directos en común; inyéctalos para poder testear.</li>
+        <li><strong>Fechas</strong> (caducidad de tarjeta): <code>kotlinx-datetime</code>, no <code>java.time</code>.</li>
+        <li><strong>Tests</strong>: <code>kotlinx-coroutines-test</code> y Turbine funcionan en <code>commonTest</code>.</li>
+      </ul>
+    </section>
+
+    <section id="dominio">
+      <span class="sec-num">04</span>
+      <h2>Diseño del dominio</h2>
+      <p class="muted">La parte difícil, ya resuelta. Es Kotlin puro y multiplataforma.</p>
+      <h3>Modelos</h3>
+<pre><span class="lbl">kotlin</span><span class="kw">@JvmInline value class</span> Amount(<span class="kw">val</span> cents: Long)     <span class="cmt">// dinero en céntimos, nunca Double</span>
+<span class="kw">enum class</span> Currency { EUR, USD }
+
+<span class="kw">sealed interface</span> PaymentMethod {
+    <span class="kw">data class</span> Card(<span class="kw">val</span> token: CardToken) : PaymentMethod
+    <span class="kw">data object</span> Wallet : PaymentMethod
+    <span class="kw">data object</span> GooglePay : PaymentMethod
+    <span class="kw">data class</span> GiftCard(<span class="kw">val</span> code: String) : PaymentMethod
+}
+
+<span class="kw">@JvmInline value class</span> CardToken(<span class="kw">val</span> value: String)      <span class="cmt">// token opaco, NO el PAN</span>
+<span class="kw">@JvmInline value class</span> IdempotencyKey(<span class="kw">val</span> value: String)</pre>
+      <h3>Máquina de estados</h3>
+<pre><span class="lbl">kotlin</span><span class="kw">sealed interface</span> PaymentState {
+    <span class="kw">data object</span> Idle : PaymentState
+    <span class="kw">data object</span> Processing : PaymentState                <span class="cmt">// enviado al PSP</span>
+    <span class="kw">data class</span> RequiresSca(<span class="kw">val</span> challenge: ScaChallenge) : PaymentState  <span class="cmt">// 3DS</span>
+    <span class="kw">data object</span> Authenticating : PaymentState            <span class="cmt">// completando 3DS</span>
+    <span class="kw">data class</span> Succeeded(<span class="kw">val</span> receipt: Receipt) : PaymentState
+    <span class="kw">data class</span> Failed(<span class="kw">val</span> error: PaymentError) : PaymentState
+}</pre>
+      <h3>Caso de uso principal (puro y testable)</h3>
+<pre><span class="lbl">kotlin</span><span class="kw">class</span> ProcessPaymentUseCase(<span class="kw">private val</span> repo: PaymentRepository) {
+    <span class="kw">operator fun</span> invoke(request: PaymentRequest): Flow&lt;PaymentState&gt; = flow {
+        emit(PaymentState.Processing)
+        <span class="kw">when</span> (<span class="kw">val</span> r = repo.authorize(request)) {
+            <span class="kw">is</span> AuthResult.Approved -&gt; emit(PaymentState.Succeeded(r.receipt))
+            <span class="kw">is</span> AuthResult.Declined -&gt; emit(PaymentState.Failed(PaymentError.Declined))
+            <span class="kw">is</span> AuthResult.NeedsSca -&gt; emit(PaymentState.RequiresSca(r.challenge))
+            <span class="kw">is</span> AuthResult.Error    -&gt; emit(PaymentState.Failed(r.error))
+        }
+    }
+}</pre>
+      <h3>Validación de tarjeta (Luhn)</h3>
+<pre><span class="lbl">kotlin</span><span class="kw">fun</span> isValidLuhn(pan: String): Boolean {
+    <span class="kw">val</span> digits = pan.filter(Char::isDigit)
+    <span class="kw">if</span> (digits.length &lt; 12) <span class="kw">return false</span>
+    <span class="kw">var</span> sum = 0; <span class="kw">var</span> alt = false
+    <span class="kw">for</span> (i <span class="kw">in</span> digits.indices.reversed()) {
+        <span class="kw">var</span> d = digits[i].digitToInt()
+        <span class="kw">if</span> (alt) { d *= 2; <span class="kw">if</span> (d &gt; 9) d -= 9 }
+        sum += d; alt = !alt
+    }
+    <span class="kw">return</span> sum % 10 == 0
+}</pre>
+      <h3>Tokenización PCI‑safe</h3>
+<pre><span class="lbl">kotlin</span><span class="kw">class</span> CardTokenizer {
+    <span class="cmt">// El PAN vive lo mínimo en memoria; NUNCA se loguea ni se persiste.</span>
+    <span class="kw">fun</span> tokenize(rawPan: String): CardToken = CardToken(<span class="str">"tok_"</span> + Uuid.random())
+    <span class="kw">fun</span> mask(rawPan: String): String = <span class="str">"•••• "</span> + rawPan.takeLast(4)  <span class="cmt">// solo mostrar</span>
+}</pre>
+      <div class="note rule"><span class="nt">Regla de oro</span>En ningún log, crash report ni estado guardado aparece el PAN completo. Solo el <strong>token</strong> y el <strong>enmascarado</strong>.</div>
+    </section>
+
+    <section id="errores">
+      <span class="sec-num">05</span>
+      <h2>Manejo de errores y resiliencia</h2>
+      <p>En pagos el camino feliz es el fácil; lo que te evalúan es cómo tratas los fallos.</p>
+      <h3>Taxonomía de errores</h3>
+<pre><span class="lbl">kotlin</span><span class="kw">sealed interface</span> PaymentError {
+    <span class="kw">data object</span> Declined : PaymentError        <span class="cmt">// rechazo del banco -> NO reintentar</span>
+    <span class="kw">data object</span> InvalidCard : PaymentError     <span class="cmt">// datos inválidos</span>
+    <span class="kw">data object</span> Network : PaymentError         <span class="cmt">// sin conexión -> reintentable</span>
+    <span class="kw">data object</span> Timeout : PaymentError         <span class="cmt">// el PSP no respondió -> reintentable</span>
+    <span class="kw">data object</span> RateLimited : PaymentError     <span class="cmt">// 429 -> backoff</span>
+    <span class="kw">data object</span> ScaFailed : PaymentError       <span class="cmt">// 3DS fallido</span>
+    <span class="kw">data object</span> Cancelled : PaymentError       <span class="cmt">// el usuario cancela el 3DS</span>
+    <span class="kw">data class</span> Unknown(<span class="kw">val</span> message: String) : PaymentError
+}</pre>
+      <h3>Reintentos con criterio</h3>
+      <p>Solo se reintentan errores <strong>transitorios</strong> (Network, Timeout, RateLimited), con backoff exponencial y límite. <strong>Nunca</strong> se reintenta un <code>Declined</code> o <code>InvalidCard</code>. Y el reintento reutiliza la <strong>misma IdempotencyKey</strong>, para que el PSP no cobre dos veces.</p>
+<pre><span class="lbl">kotlin</span><span class="kw">suspend fun</span> retryTransient(
+    maxAttempts: Int = 3,
+    initialDelayMs: Long = 300,
+    isTransient: (PaymentError) -&gt; Boolean,
+    block: <span class="kw">suspend</span> () -&gt; AuthResult,
+): AuthResult {
+    <span class="kw">var</span> delay = initialDelayMs
+    <span class="kw">repeat</span>(maxAttempts - 1) {
+        <span class="kw">val</span> r = block()
+        <span class="kw">if</span> (r !<span class="kw">is</span> AuthResult.Error || !isTransient(r.error)) <span class="kw">return</span> r
+        delay(delay); delay *= 2
+    }
+    <span class="kw">return</span> block() <span class="cmt">// último intento</span>
+}</pre>
+      <div class="note focus"><span class="nt">El detalle que separa junior de senior</span>Saber <strong>qué NO se reintenta</strong> (un <code>Declined</code> jamás) y la <strong>idempotencia</strong> (que un timeout + reintento no genere doble cobro). Ten esos dos tests en verde y sabe explicarlos.</div>
+    </section>
+
+    <section id="tests">
+      <span class="sec-num">06</span>
+      <h2>Estrategia de tests</h2>
+      <p class="muted">Herramientas: <code>kotlinx-coroutines-test</code>, <strong>Turbine</strong> para <code>Flow</code>, MockK para dobles, Compose UI Test para la UI. Prioriza la lógica: es barata y es donde está el valor. Cubre entera la matriz — los caminos de error son lo importante.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Capa</th><th>Caso feliz</th><th>Casos de error / borde</th></tr></thead>
+          <tbody>
+            <tr><td>ProcessPaymentUseCase</td><td>Approved → Succeeded</td><td>Declined · Network · Timeout · NeedsSca→Cancelled</td></tr>
+            <tr><td>completeSca</td><td>OTP correcto → Succeeded</td><td>OTP incorrecto → ScaFailed · challenge caducado → Timeout</td></tr>
+            <tr><td>Luhn / validación</td><td>tarjeta válida</td><td>dígito cambiado · longitud corta · caducidad pasada · CVV inválido</td></tr>
+            <tr><td>Tokenizer</td><td>tokeniza y enmascara</td><td><strong>no filtra el PAN</strong> en logs ni en el estado</td></tr>
+            <tr><td>Idempotencia</td><td>1ª llamada cobra</td><td>misma key repetida → <strong>mismo resultado, no cobra 2 veces</strong></td></tr>
+            <tr><td>retryTransient</td><td>transitorio → reintenta y acierta</td><td>Declined → no reintenta · agota intentos → error</td></tr>
+            <tr><td>Máquina de estados</td><td>Processing→…→Succeeded</td><td>Processing→Failed (cada error)</td></tr>
+          </tbody>
+        </table>
+      </div>
+<pre><span class="lbl">kotlin · commonTest</span><span class="fn">@Test</span> <span class="kw">fun</span> `rechazo emite Failed(Declined) y no reintenta`() = runTest {
+    <span class="kw">val</span> repo = FakePaymentRepository(outcome = Declined)
+    <span class="kw">val</span> states = ProcessPaymentUseCase(repo)(request).toList()
+    assertEquals(PaymentState.Failed(PaymentError.Declined), states.last())
+    assertEquals(1, repo.authorizeCalls)              <span class="cmt">// NO reintentó</span>
+}
+
+<span class="fn">@Test</span> <span class="kw">fun</span> `reintento reutiliza la key y no cobra dos veces`() = runTest {
+    <span class="kw">val</span> psp = FakePsp()
+    <span class="kw">val</span> r1 = psp.authorize(request); <span class="kw">val</span> r2 = psp.authorize(request)  <span class="cmt">// misma key</span>
+    assertEquals(r1, r2)
+    assertEquals(1, psp.charges)                      <span class="cmt">// un solo cargo</span>
+}</pre>
+    </section>
+
+    <section id="prompt">
+      <span class="sec-num">07</span>
+      <h2>Prompt maestro para Claude Code</h2>
+      <p>Ábrelo en una carpeta vacía en tu PC y pega esto en Claude Code. Crea el repo en tu GitHub, monta el proyecto KMP y trabaja por ramas, fase a fase. Domina el flujo: pídete confirmación antes de cada merge a <code>main</code>.</p>
+
+      <div class="prompt-card">
+        <div class="prompt-head">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="ph-title">claude-code · master-prompt.txt</span>
+          <span class="spacer"></span>
+          <button class="copybtn" data-copy="master">Copiar</button>
+        </div>
+        <div class="prompt-body" id="master"><span class="h">Actúa como mi copiloto para construir CheckoutKMP</span>, una app de prácticas de PAGOS en Kotlin Multiplatform (Android como target principal, iOS opcional). Trabaja de forma autónoma por fases, pero pídeme confirmación antes de cada merge a main.
+
+<span class="h">## 0 · Repositorio y setup</span>
+1. Comprueba que la CLI de GitHub está autenticada: `gh auth status`. Si no lo está, dime los pasos para autenticarme y espera.
+2. Crea un repo nuevo en mi cuenta de GitHub (usuario rndevelo):
+   `gh repo create CheckoutKMP --private --description "KMP payments practice app: checkout, 3DS, idempotency, a11y" --source=. --remote=origin`
+3. Inicializa un proyecto Kotlin Multiplatform:
+   - módulo :shared con androidTarget (deja los targets iOS preparados pero desactivados por ahora), source sets commonMain / commonTest / androidMain.
+   - módulo :androidApp con Jetpack Compose.
+   - Gradle version catalogs (libs.versions.toml).
+   - Dependencias: kotlinx-coroutines, kotlinx-datetime, Koin (KMP), Turbine (commonTest). UUID vía kotlin.uuid (stdlib).
+4. Añade .gitignore de Android/KMP, un README.md y un CLAUDE.md con la arquitectura (Clean Architecture: commonMain/domain + commonMain/data; UI en :androidApp; MVI; DI con Koin).
+5. Commit inicial en main y push.
+
+<span class="h">## Estrategia de ramas y commits</span>
+<span class="d">- main SIEMPRE compila y pasa los tests.</span>
+<span class="d">- Cada fase en su propia rama: feat/phase-1-domain, feat/phase-2-tests, feat/phase-3-data, feat/phase-4-ui, feat/phase-5-3ds, feat/phase-6-a11y, feat/phase-7-errors, feat/phase-8-polish.</span>
+<span class="d">- Commits pequeños con Conventional Commits (feat:, test:, refactor:, docs:).</span>
+<span class="d">- Al terminar una fase: ejecuta los tests; si pasan, pídeme OK para abrir PR (gh pr create) y mergear a main. No mergees sin mi confirmación.</span>
+
+<span class="h">## Reglas de oro</span>
+<span class="d">- El PAN (número de tarjeta) NUNCA se loguea, ni se persiste, ni aparece en el estado. Solo token + enmascarado.</span>
+<span class="d">- La lógica (dominio + data + tests) va en commonMain / commonTest. Solo la UI en :androidApp.</span>
+<span class="d">- Casos de uso puros y testeados. El dominio no depende de Android.</span>
+
+<span class="h">## Fases (una por rama, en orden — empieza por el dominio)</span>
+1. Dominio (commonMain/domain): modelos, PaymentState, ProcessPaymentUseCase + completeSca, Luhn, caducidad con kotlinx-datetime.
+2. Tests del dominio (commonTest) con Turbine: Approved/NeedsSca/Declined/Error, Luhn, máquina de estados.
+3. Data (commonMain/data): PaymentRepository, FakePsp configurable con latencia e idempotencia, CardTokenizer PCI-safe. Tests de idempotencia y enmascarado.
+4. UI Android (:androidApp, Compose + MVI): método de pago + formulario de tarjeta con validación en vivo.
+5. 3D Secure: pantalla de challenge, OTP simulado, completeSca; maneja éxito y ScaFailed.
+6. Accesibilidad: traversalIndex (orden de foco), liveRegion (anunciar errores/resultado), contentDescription, key(...) para evitar anuncios indebidos de placeholders.
+7. Errores y resiliencia: taxonomía completa de PaymentError, mapper PSP→dominio, retryTransient con backoff que SOLO reintenta transitorios reutilizando la misma IdempotencyKey. Recibo y pantalla de fallo con mensajes accesibles + reintento. Tests de todos los caminos de error.
+8. Pulido: README con diagrama de la máquina de estados y sección "qué demuestra"; verifica que ningún log contiene el PAN.
+
+Empieza por la Fase 0 (repo + setup). Cuando esté lista, avísame y seguimos con el dominio.</div>
+      </div>
+      <div class="note focus"><span class="nt">Antes de pegar</span>Ten <code>gh</code> instalado y ejecuta <code>gh auth login</code> una vez. Si prefieres el repo público, cambia <code>--private</code> por <code>--public</code>. Si tu handle no fuera <code>rndevelo</code>, el repo se crea igualmente bajo tu cuenta autenticada.</div>
+    </section>
+
+    <section id="roadmap">
+      <span class="sec-num">08</span>
+      <h2>Roadmap por fases</h2>
+      <p class="muted">Rama a rama (tu flujo). Cada fase trae su prompt para pedírselo a Claude Code. Empieza por el dominio: si clavas la máquina de estados y los casos de uso testeados, lo demás cae solo.</p>
+      <div class="phase">
+        <div class="phase-item" data-n="0">
+          <h4>Setup KMP + repo</h4>
+          <p class="ptxt">Proyecto KMP (:shared + :androidApp), version catalogs, dependencias, repo en GitHub y ramas.</p>
+          <div class="mini-prompt"><button class="copybtn mc" data-copy="p0">Copiar</button><span id="p0">Crea un proyecto Kotlin Multiplatform con :shared (androidTarget; iOS preparado pero opcional) y :androidApp con Compose. Version catalogs. commonMain en capas domain/ y data/, commonTest para tests. Añade Koin (KMP), kotlinx-coroutines, kotlinx-datetime y Turbine.</span></div>
+        </div>
+        <div class="phase-item" data-n="1">
+          <h4>Dominio en commonMain</h4>
+          <p class="ptxt">Lo difícil primero: modelos, máquina de estados y casos de uso, Kotlin puro.</p>
+          <div class="mini-prompt"><button class="copybtn mc" data-copy="p1">Copiar</button><span id="p1">En :shared/commonMain/domain implementa los modelos (Amount, Currency, PaymentMethod, CardToken, IdempotencyKey con kotlin.uuid.Uuid, PaymentRequest, Receipt, PaymentError), PaymentState y ProcessPaymentUseCase (con completeSca). Añade Luhn y caducidad con kotlinx-datetime. Kotlin puro, sin Android.</span></div>
+        </div>
+        <div class="phase-item" data-n="2">
+          <h4>Tests del dominio</h4>
+          <p class="ptxt">commonTest con Turbine: cubre caminos felices y de error.</p>
+          <div class="mini-prompt"><button class="copybtn mc" data-copy="p2">Copiar</button><span id="p2">En commonTest escribe tests de ProcessPaymentUseCase con un FakePaymentRepository que reproduzca Approved, NeedsSca, Declined y Error; tests de Luhn y de la máquina de estados. Usa Turbine.</span></div>
+        </div>
+        <div class="phase-item" data-n="3">
+          <h4>Data (commonMain)</h4>
+          <p class="ptxt">FakePsp con idempotencia + tokenizer PCI-safe.</p>
+          <div class="mini-prompt"><button class="copybtn mc" data-copy="p3">Copiar</button><span id="p3">En :shared/commonMain/data implementa PaymentRepository con un FakePsp configurable (approved/needsSca/declined/network) con latencia e idempotencia por IdempotencyKey, y un CardTokenizer PCI-safe (tokeniza y enmascara, nunca loguea el PAN). Tests en commonTest de idempotencia y enmascarado.</span></div>
+        </div>
+        <div class="phase-item" data-n="4">
+          <h4>UI Android (Compose + MVI)</h4>
+          <p class="ptxt">Selección de método y formulario de tarjeta con validación en vivo.</p>
+          <div class="mini-prompt"><button class="copybtn mc" data-copy="p4">Copiar</button><span id="p4">En :androidApp crea la pantalla de selección de método de pago y el formulario de tarjeta (validación en vivo con Luhn, formateo, enmascarado) con MVI (estado inmutable e intents), consumiendo los casos de uso de :shared. Design system y tema propios.</span></div>
+        </div>
+        <div class="phase-item" data-n="5">
+          <h4>3D Secure</h4>
+          <p class="ptxt">Challenge, OTP simulado y completeSca.</p>
+          <div class="mini-prompt"><button class="copybtn mc" data-copy="p5">Copiar</button><span id="p5">Añade la pantalla de challenge 3DS: cuando el estado sea RequiresSca, navega al challenge, pide un OTP simulado y llama a completeSca. Maneja éxito, ScaFailed y cancelación del usuario (Cancelled).</span></div>
+        </div>
+        <div class="phase-item" data-n="6">
+          <h4>Accesibilidad</h4>
+          <p class="ptxt">traversalIndex, liveRegion y key(...) — tus fixes de Santander.</p>
+          <div class="mini-prompt"><button class="copybtn mc" data-copy="p6">Copiar</button><span id="p6">Aplica accesibilidad al checkout: traversalIndex para el orden de foco, liveRegion para anunciar errores y el resultado del pago, contentDescription en marcas de tarjeta, y key(...) para evitar anuncios indebidos de placeholders que cambian.</span></div>
+        </div>
+        <div class="phase-item" data-n="7">
+          <h4>Errores y resiliencia</h4>
+          <p class="ptxt">La fase clave en pagos: taxonomía, retryTransient e idempotencia.</p>
+          <div class="mini-prompt"><button class="copybtn mc" data-copy="p7">Copiar</button><span id="p7">Implementa la taxonomía completa de PaymentError, un mapper PSP→PaymentError centralizado en el borde, y retryTransient con backoff que SOLO reintenta transitorios reutilizando la misma IdempotencyKey (nunca Declined/InvalidCard). Recibo (éxito) y pantalla de fallo con mensaje accesible por tipo de error y botón de reintento. 3DS: cancelación/timeout como Cancelled/Timeout. Añade los tests de la matriz, sobre todo los de error e idempotencia. Verifica que ningún log contiene el PAN.</span></div>
+        </div>
+        <div class="phase-item" data-n="8">
+          <h4>Pulido</h4>
+          <p class="ptxt">README, diagrama de estados y repaso de seguridad.</p>
+          <div class="mini-prompt"><button class="copybtn mc" data-copy="p8">Copiar</button><span id="p8">README con el diseño, un diagrama de la máquina de estados y una sección "¿Qué demuestra este proyecto?" orientada a pagos. Repasa que ningún log/estado contiene el PAN completo.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="entrevista">
+      <span class="sec-num">09</span>
+      <h2>Cómo hablar de esto en la entrevista</h2>
+      <ul class="clean">
+        <li>“Vengo de banca (Cards en Openbank): gestión de tarjetas, seguridad y calidad. El dominio de medios de pago me es muy cercano.”</li>
+        <li>“He montado un flujo completo de checkout con tokenización PCI‑safe, 3D&nbsp;Secure, idempotencia y su máquina de estados, con la lógica en casos de uso puros y testeados en KMP.”</li>
+        <li>“La accesibilidad la tengo interiorizada: en Santander resolví fixes de lector de pantalla que adoptó el equipo (traversalIndex) y evité anuncios indebidos con <code>key</code> de Compose; aquí también.”</li>
+      </ul>
+      <div class="note rule"><span class="nt">Recordatorio de foco</span>Monta <code>commonMain</code> completo, pero para la v1 haz <strong>solo UI Android</strong> (lo que pide Inditex). iOS solo si te sobra tiempo. El objetivo no es una app perfecta, es entender cada pieza para defenderla.</div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <span><span class="k">CheckoutKMP</span> · guía de construcción · KMP · pagos</span>
+  <span>hecho para preparar Inditex · v1</span>
+</footer>
+
+<script>
+  // Copiar al portapapeles
+  function textFor(id){
+    var el=document.getElementById(id);
+    return el ? el.innerText.replace(/\u00a0/g,' ') : '';
+  }
+  document.querySelectorAll('.copybtn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var id=btn.getAttribute('data-copy');
+      var txt=textFor(id);
+      var done=function(){var o=btn.textContent;btn.textContent='Copiado ✓';btn.classList.add('ok');setTimeout(function(){btn.textContent=o;btn.classList.remove('ok');},1600);};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done,function(){fallback(txt,done);});}
+      else{fallback(txt,done);}
+    });
+  });
+  function fallback(txt,cb){
+    var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);cb&&cb();
+  }
+  // Scrollspy
+  var links=[].slice.call(document.querySelectorAll('nav.toc a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function spy(){
+    var y=window.scrollY+120,cur=0;
+    for(var i=0;i<secs.length;i++){if(secs[i]&&secs[i].offsetTop<=y)cur=i;}
+    links.forEach(function(l,i){l.classList.toggle('active',i===cur);});
+  }
+  window.addEventListener('scroll',spy,{passive:true});spy();
+</script>
+</body>
+</html>

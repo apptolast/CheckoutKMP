@@ -4,8 +4,8 @@ import com.apptolast.checkoutkmp.data.psp.FakePsp
 import com.apptolast.checkoutkmp.data.psp.PspScenario
 import com.apptolast.checkoutkmp.data.repository.PaymentRepositoryImpl
 import com.apptolast.checkoutkmp.data.tokenizer.FakeCardTokenizer
-import com.apptolast.checkoutkmp.data.tokenizer.RawCard
-import com.apptolast.checkoutkmp.data.tokenizer.TokenizationResult
+import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
+import com.apptolast.checkoutkmp.domain.tokenizer.TokenizationResult
 import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.CardExpiry
 import com.apptolast.checkoutkmp.domain.model.Currency

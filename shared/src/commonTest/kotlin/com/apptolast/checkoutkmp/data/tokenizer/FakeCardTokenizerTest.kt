@@ -2,6 +2,8 @@ package com.apptolast.checkoutkmp.data.tokenizer
 
 import com.apptolast.checkoutkmp.domain.model.CardBrand
 import com.apptolast.checkoutkmp.domain.model.CardExpiry
+import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
+import com.apptolast.checkoutkmp.domain.tokenizer.TokenizationResult
 import com.apptolast.checkoutkmp.support.FixedClock
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test

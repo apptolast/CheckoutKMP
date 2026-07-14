@@ -21,18 +21,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import com.apptolast.checkoutkmp.R
-import com.apptolast.checkoutkmp.data.tokenizer.RawCard
 import com.apptolast.checkoutkmp.domain.model.CardBrand
 import com.apptolast.checkoutkmp.domain.model.CardExpiry
+import com.apptolast.checkoutkmp.domain.model.CardRules
+import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
 import com.apptolast.checkoutkmp.domain.usecase.Luhn
 
-// Card field bounds. The PAN range spans the shortest (some Maestro) to longest (19-digit) cards.
-private const val MIN_PAN_LENGTH = 12
-private const val MAX_PAN_LENGTH = 19
-private const val MIN_CVV_LENGTH = 3
-private const val MAX_CVV_LENGTH = 4
+// UI-only cap for the expiry field (MMYY); the domain owns the PAN/CVV rules via CardRules.
 private const val EXPIRY_MAX_DIGITS = 4
-private const val LAST_FOUR = 4
 
 /**
  * Card entry form with live validation.
@@ -51,16 +47,16 @@ fun CardForm(
     var cvv by remember { mutableStateOf("") }        // sensitive — UI-only
 
     val brand = CardBrand.detect(pan)
-    val panValid = pan.length in MIN_PAN_LENGTH..MAX_PAN_LENGTH && Luhn.isValid(pan)
+    val panValid = pan.length in CardRules.PAN_LENGTHS && Luhn.isValid(pan)
     val parsedExpiry = CardExpiry.parse(expiry)
     val expiryValid = parsedExpiry != null && !parsedExpiry.isExpiredNow()
-    val cvvValid = cvv.length in MIN_CVV_LENGTH..MAX_CVV_LENGTH
+    val cvvValid = cvv.length in CardRules.CVV_LENGTHS
     val formValid = panValid && expiryValid && cvvValid
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
         OutlinedTextField(
             value = pan,
-            onValueChange = { pan = digitsOnly(it, max = MAX_PAN_LENGTH) },
+            onValueChange = { pan = digitsOnly(it, max = CardRules.PAN_LENGTHS.last) },
             label = { Text(stringResource(R.string.card_number_label)) },
             supportingText = { CardBrandSupportingText(brand, pan) },
             isError = pan.isNotEmpty() && !panValid,
@@ -85,7 +81,7 @@ fun CardForm(
             )
             OutlinedTextField(
                 value = cvv,
-                onValueChange = { cvv = digitsOnly(it, max = MAX_CVV_LENGTH) },
+                onValueChange = { cvv = digitsOnly(it, max = CardRules.CVV_LENGTHS.last) },
                 label = { Text(stringResource(R.string.card_cvv_label)) },
                 isError = cvv.isNotEmpty() && !cvvValid,
                 singleLine = true,
@@ -115,8 +111,8 @@ fun CardForm(
  */
 @Composable
 private fun CardBrandSupportingText(brand: CardBrand, pan: String) {
-    val hasLast4 = pan.length >= LAST_FOUR
-    val last4 = pan.takeLast(LAST_FOUR)
+    val hasLast4 = pan.length >= CardRules.LAST4_LENGTH
+    val last4 = pan.takeLast(CardRules.LAST4_LENGTH)
     val visual = if (hasLast4) {
         stringResource(R.string.card_brand_last4, brand.displayName, last4)
     } else {

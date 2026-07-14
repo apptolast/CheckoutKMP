@@ -22,17 +22,20 @@ Clean Architecture con la lógica de negocio 100 % en Kotlin común (sin Android
 │  :shared / commonMain                                      │
 │                                                            │
 │   domain/   Modelos puros, PaymentState, casos de uso,     │
-│             Luhn, caducidad (kotlinx-datetime).            │
+│             Luhn, caducidad, y los CONTRATOS               │
+│             (PaymentRepository, CardTokenizer).            │
 │             No conoce Android ni frameworks.               │
 │                                                            │
-│   data/     PaymentRepository, FakePsp, CardTokenizer      │
-│             (PCI-safe), idempotencia por IdempotencyKey.   │
+│   data/     IMPLEMENTACIONES: FakePsp, FakeCardTokenizer   │
+│             (PCI-safe), repositorio + retry, idempotencia  │
+│             por IdempotencyKey.                            │
 └──────────────────────────────────────────────────────────┘
 ```
 
-- **domain** no depende de nada de la plataforma: modelos inmutables, casos de uso puros
-  y la máquina de estados del pago.
-- **data** implementa los contratos del dominio (repositorios, PSP simulado, tokenizador).
+- **domain** no depende de nada de la plataforma: modelos inmutables, casos de uso puros,
+  la máquina de estados y los **contratos** (`PaymentRepository`, `CardTokenizer`).
+- **data** implementa esos contratos (PSP simulado, tokenizador PCI-safe, repositorio con reintentos).
+  Regla de dependencia: `data → domain ← presentation` (nada apunta hacia data).
 - **UI** (solo Android) sigue **MVI**: estado inmutable + intents, alimentado por los casos de uso.
 - **DI** con **Koin** (KMP en `:shared`, `koin-android` en la app).
 - Targets **iOS activados** (`iosArm64` + `iosSimulatorArm64`, framework `Shared`). `commonMain` es
@@ -131,6 +134,10 @@ con la **misma** `IdempotencyKey`.
   **~70 tests** entre `commonTest` (dominio + data) y los tests JVM de la app (ViewModel + DI).
 - **Accesibilidad de verdad:** anuncios de errores/resultado (`liveRegion`), descripciones de contenido
   y navegación por headings.
+- **Internacionalización:** UI totalmente localizada **EN/ES** (recursos `strings.xml` + `values-es/`);
+  los mensajes de error nunca filtran códigos técnicos (p. ej. `insufficient_funds`) al usuario.
+- **Higiene de código:** sin números mágicos (reglas de tarjeta centralizadas en `CardRules`, dimensiones
+  en `Dimens`), sin APIs deprecadas y con la regla de dependencia de Clean Architecture respetada.
 
 ---
 
