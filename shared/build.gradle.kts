@@ -3,19 +3,22 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidMultiplatformLibrary)
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
 }
 
 kotlin {
-    // Shared logic is pure Kotlin: domain + data live here, no Android and no UI.
-    // kotlin.uuid.Uuid is used for IdempotencyKey.
+    // Shared logic + shared Compose UI/presentation. kotlin.uuid.Uuid is used for IdempotencyKey.
+    // i18n is done in Kotlin (see Localization.kt) rather than Compose resources, which the AGP 9
+    // KMP-library plugin does not package into the Android app.
     compilerOptions {
         optIn.add("kotlin.uuid.ExperimentalUuidApi")
     }
 
     // --- iOS targets ----------------------------------------------------------
-    // commonMain stays platform-agnostic (coroutines, datetime, koin-core, stdlib),
-    // so no iosMain actuals are required. Apple targets can only be COMPILED/LINKED
-    // on macOS with Xcode — on other hosts these tasks are configured but not run.
+    // The Compose UI is shared across Android and iOS. Apple targets can only be
+    // COMPILED/LINKED on macOS with Xcode — on other hosts these tasks are configured
+    // but not run.
     listOf(
         iosArm64(),
         iosSimulatorArm64(),
@@ -40,9 +43,22 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            // Logic
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
             implementation(libs.koin.core)
+
+            // Compose UI (shared)
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.ui)
+            implementation(libs.androidx.lifecycle.viewmodelCompose)
+            implementation(libs.androidx.lifecycle.runtimeCompose)
+
+            // DI for Compose (multiplatform)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

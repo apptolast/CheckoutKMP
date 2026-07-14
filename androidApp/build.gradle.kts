@@ -12,25 +12,20 @@ kotlin {
     }
 }
 dependencies {
+    // The shared module now owns the Compose UI + presentation; :androidApp is a thin host.
     implementation(projects.shared)
 
-    // Compose UI (lives only in :androidApp)
+    // Compose host essentials (the UI itself lives in :shared)
     implementation(libs.compose.runtime)
-    implementation(libs.compose.foundation)
-    implementation(libs.compose.material3)
     implementation(libs.compose.ui)
-    implementation(libs.androidx.lifecycle.viewmodelCompose)
-    implementation(libs.androidx.lifecycle.runtimeCompose)
     implementation(libs.androidx.activity.compose)
 
-    // Dependency injection
+    // Koin: start the graph with the Android context (koinViewModel lives in :shared via koin-compose)
     implementation(libs.koin.android)
-    implementation(libs.koin.androidx.compose)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
-    implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
 
     // Unit tests (JVM)

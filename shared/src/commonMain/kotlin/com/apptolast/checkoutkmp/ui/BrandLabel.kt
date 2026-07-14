@@ -1,8 +1,6 @@
 package com.apptolast.checkoutkmp.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
-import com.apptolast.checkoutkmp.R
 import com.apptolast.checkoutkmp.domain.model.CardBrand
 
 /**
@@ -11,4 +9,4 @@ import com.apptolast.checkoutkmp.domain.model.CardBrand
  */
 @Composable
 fun brandLabel(brand: CardBrand): String =
-    if (brand == CardBrand.UNKNOWN) stringResource(R.string.card_brand_generic) else brand.displayName
+    if (brand == CardBrand.UNKNOWN) tr("Card", "Tarjeta") else brand.displayName

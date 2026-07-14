@@ -16,11 +16,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
-import com.apptolast.checkoutkmp.R
 import com.apptolast.checkoutkmp.domain.model.CardBrand
 import com.apptolast.checkoutkmp.domain.model.CardExpiry
 import com.apptolast.checkoutkmp.domain.model.CardRules
@@ -57,7 +55,7 @@ fun CardForm(
         OutlinedTextField(
             value = pan,
             onValueChange = { pan = digitsOnly(it, max = CardRules.PAN_LENGTHS.last) },
-            label = { Text(stringResource(R.string.card_number_label)) },
+            label = { Text(tr("Card number", "Número de tarjeta")) },
             supportingText = { CardBrandSupportingText(brand, pan) },
             isError = pan.isNotEmpty() && !panValid,
             singleLine = true,
@@ -71,7 +69,7 @@ fun CardForm(
             OutlinedTextField(
                 value = expiry,
                 onValueChange = { expiry = digitsOnly(it, max = EXPIRY_MAX_DIGITS) },
-                label = { Text(stringResource(R.string.card_expiry_label)) },
+                label = { Text(tr("MM/YY", "MM/AA")) },
                 isError = expiry.isNotEmpty() && !expiryValid,
                 singleLine = true,
                 enabled = enabled,
@@ -82,7 +80,7 @@ fun CardForm(
             OutlinedTextField(
                 value = cvv,
                 onValueChange = { cvv = digitsOnly(it, max = CardRules.CVV_LENGTHS.last) },
-                label = { Text(stringResource(R.string.card_cvv_label)) },
+                label = { Text(tr("CVV", "CVV")) },
                 isError = cvv.isNotEmpty() && !cvvValid,
                 singleLine = true,
                 enabled = enabled,
@@ -99,7 +97,7 @@ fun CardForm(
             enabled = enabled && formValid,
             modifier = Modifier.fillMaxWidth().padding(top = Dimens.spacingXSmall),
         ) {
-            Text(stringResource(R.string.action_pay))
+            Text(tr("Pay", "Pagar"))
         }
     }
 }
@@ -114,15 +112,11 @@ private fun CardBrandSupportingText(brand: CardBrand, pan: String) {
     val hasLast4 = pan.length >= CardRules.LAST4_LENGTH
     val last4 = pan.takeLast(CardRules.LAST4_LENGTH)
     val label = brandLabel(brand)
-    val visual = if (hasLast4) {
-        stringResource(R.string.card_brand_last4, label, last4)
-    } else {
-        stringResource(R.string.card_brand_only, label)
-    }
+    val visual = if (hasLast4) "$label · •••• $last4" else label
     val spoken = if (hasLast4) {
-        stringResource(R.string.card_ending_in_a11y, label, last4)
+        tr("$label, card ending in $last4", "$label, tarjeta terminada en $last4")
     } else {
-        stringResource(R.string.card_brand_card_a11y, label)
+        tr("$label card", "Tarjeta $label")
     }
     key(visual) {
         Text(visual, modifier = Modifier.semantics { contentDescription = spoken })

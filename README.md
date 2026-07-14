@@ -1,10 +1,10 @@
 # CheckoutKMP
 
-Flujo de checkout y pagos en Kotlin Multiplatform: tokenización, 3D Secure (SCA), idempotencia, reintentos, accesibilidad y tests de lógica compartida. Lógica en commonMain, UI Android en :androidApp.
+Flujo de checkout y pagos en Kotlin Multiplatform: tokenización, 3D Secure (SCA), idempotencia, reintentos, accesibilidad y tests de lógica compartida. Lógica **y UI (Compose Multiplatform)** en commonMain; Android e iOS son hosts finos.
 
 > Proyecto de prácticas centrado en el **dominio de pagos**. El objetivo es demostrar
 > una arquitectura limpia, testeable y segura (PCI-consciente) para un flujo de pago real,
-> con la lógica compartida en `commonMain` y la UI únicamente en Android.
+> con la lógica **y la UI Compose** compartidas en `commonMain`.
 
 ---
 
@@ -14,45 +14,46 @@ Clean Architecture con la lógica de negocio 100 % en Kotlin común (sin Android
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  :androidApp   (Compose + MVI)                             │
-│  UI · estado inmutable · intents · ViewModels              │
+│  :androidApp (MainActivity)   ·   iosApp (ComposeView)     │
+│  Hosts finos: arrancan Koin y montan App()                 │
 └───────────────▲──────────────────────────────────────────┘
-                │  consume casos de uso
+                │
 ┌───────────────┴──────────────────────────────────────────┐
 │  :shared / commonMain                                      │
 │                                                            │
-│   domain/   Modelos puros, PaymentState, casos de uso,     │
-│             Luhn, caducidad, y los CONTRATOS               │
-│             (PaymentRepository, CardTokenizer).            │
-│             No conoce Android ni frameworks.               │
-│                                                            │
-│   data/     IMPLEMENTACIONES: FakePsp, FakeCardTokenizer   │
-│             (PCI-safe), repositorio + retry, idempotencia  │
-│             por IdempotencyKey.                            │
+│   ui/           Compose Multiplatform: App, CheckoutScreen,│
+│                 formulario, 3DS, recibo (i18n EN/ES en Kotlin)│
+│   presentation/ MVI: CheckoutState, intents, ViewModel     │
+│   domain/       Modelos, PaymentState, casos de uso, Luhn, │
+│                 y los CONTRATOS (PaymentRepository,         │
+│                 CardTokenizer). Sin Android ni frameworks.  │
+│   data/         IMPLEMENTACIONES: FakePsp, FakeCardTokenizer│
+│                 (PCI-safe), repositorio + retry, idempotencia│
 └──────────────────────────────────────────────────────────┘
 ```
 
-- **domain** no depende de nada de la plataforma: modelos inmutables, casos de uso puros,
-  la máquina de estados y los **contratos** (`PaymentRepository`, `CardTokenizer`).
-- **data** implementa esos contratos (PSP simulado, tokenizador PCI-safe, repositorio con reintentos).
-  Regla de dependencia: `data → domain ← presentation` (nada apunta hacia data).
-- **UI** (solo Android) sigue **MVI**: estado inmutable + intents, alimentado por los casos de uso.
-- **DI** con **Koin** (KMP en `:shared`, `koin-android` en la app).
-- Targets **iOS activados** (`iosArm64` + `iosSimulatorArm64`, framework `Shared`). `commonMain` es
-  agnóstico de plataforma, así que no necesita `iosMain`. La compilación/enlazado de los targets Apple
-  **requiere macOS + Xcode** (en otros hosts Gradle los configura pero no ejecuta sus tareas nativas).
+- **UI + presentación compartidas** (Compose Multiplatform + MVI) en `commonMain`; Android e iOS
+  solo hospedan `App()` y arrancan Koin.
+- **domain** no depende de la plataforma: modelos, máquina de estados y **contratos**
+  (`PaymentRepository`, `CardTokenizer`). **data** los implementa. Regla de dependencia:
+  `data → domain ← presentation` (nada apunta hacia data).
+- **DI** con **Koin** (`koin-compose` multiplataforma; `initKoin()` común, `androidContext` en la app).
+- **i18n en Kotlin** (`tr(en, es)` + `expect deviceLanguageCode()`): los Compose *resources* no los
+  empaqueta el plugin KMP-library de AGP 9, así que la localización EN/ES se hace en código.
+- Targets **iOS activados** (`iosArm64` + `iosSimulatorArm64`, framework `Shared`); `iosMain` aporta
+  `MainViewController` (Compose) e `initKoinIos`. La compilación/enlazado Apple **requiere macOS + Xcode**.
 
 ## Módulos
 
 | Módulo        | Contenido                                                            |
 |---------------|---------------------------------------------------------------------|
-| `:shared`     | Lógica compartida: `commonMain` (domain + data), `commonTest`, `androidMain`. |
-| `:androidApp` | Aplicación Android con Compose y patrón MVI.                         |
-| `iosApp`      | App SwiftUI nativa que consume el framework `Shared` (targets iOS activados). |
+| `:shared`     | Todo salvo los hosts: `commonMain` (ui + presentation + domain + data), `commonTest`, `androidMain`, `iosMain`. |
+| `:androidApp` | Host Android fino: `Application` (arranca Koin) + `MainActivity` (`setContent { App() }`). |
+| `iosApp`      | Host iOS fino (SwiftUI): `ComposeView` monta `MainViewController()`; arranca Koin en `App.init`. |
 
 ### Stack
 
-- Kotlin Multiplatform (Kotlin 2.4, AGP 9) · Gradle version catalogs (`gradle/libs.versions.toml`)
+- Kotlin Multiplatform (Kotlin 2.4, AGP 9) · **Compose Multiplatform** (UI compartida) · Gradle version catalogs
 - kotlinx-coroutines · kotlinx-datetime · Koin
 - `kotlin.uuid.Uuid` (stdlib) para `IdempotencyKey`
 - Tests: kotlin-test · kotlinx-coroutines-test · **Turbine**
@@ -134,8 +135,10 @@ con la **misma** `IdempotencyKey`.
   **~70 tests** entre `commonTest` (dominio + data) y los tests JVM de la app (ViewModel + DI).
 - **Accesibilidad de verdad:** anuncios de errores/resultado (`liveRegion`), descripciones de contenido
   y navegación por headings.
-- **Internacionalización:** UI totalmente localizada **EN/ES** (recursos `strings.xml` + `values-es/`);
-  los mensajes de error nunca filtran códigos técnicos (p. ej. `insufficient_funds`) al usuario.
+- **UI compartida (Compose Multiplatform):** una sola UI Compose (`commonMain/ui`) para Android e iOS;
+  los hosts solo montan `App()` y arrancan Koin.
+- **Internacionalización:** UI localizada **EN/ES** vía `tr(en, es)` en Kotlin (los Compose resources no
+  los empaqueta el plugin KMP-library de AGP 9); los mensajes de error nunca filtran códigos técnicos.
 - **Higiene de código:** sin números mágicos (reglas de tarjeta centralizadas en `CardRules`, dimensiones
   en `Dimens`), sin APIs deprecadas y con la regla de dependencia de Clean Architecture respetada.
 

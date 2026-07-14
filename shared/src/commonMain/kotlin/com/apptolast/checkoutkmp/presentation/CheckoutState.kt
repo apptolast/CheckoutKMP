@@ -1,16 +1,14 @@
 package com.apptolast.checkoutkmp.presentation
 
-import androidx.annotation.StringRes
-import com.apptolast.checkoutkmp.R
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.Receipt
 import com.apptolast.checkoutkmp.domain.model.ScaChallenge
 
-/** The payment methods the user can pick in the demo. [labelRes] is resolved to a localized label by the UI. */
-enum class MethodOption(@param:StringRes val labelRes: Int) {
-    CARD(R.string.method_card),
+/** The payment methods the user can pick in the demo. The UI resolves the localized label. */
+enum class MethodOption {
+    CARD,
 }
 
 /**

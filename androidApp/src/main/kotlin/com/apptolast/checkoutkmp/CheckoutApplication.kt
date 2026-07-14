@@ -1,18 +1,14 @@
 package com.apptolast.checkoutkmp
 
 import android.app.Application
-import com.apptolast.checkoutkmp.data.di.dataModule
-import com.apptolast.checkoutkmp.di.presentationModule
-import com.apptolast.checkoutkmp.domain.di.domainModule
+import com.apptolast.checkoutkmp.di.initKoin
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.context.startKoin
 
 class CheckoutApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        startKoin {
+        initKoin {
             androidContext(this@CheckoutApplication)
-            modules(domainModule, dataModule, presentationModule)
         }
     }
 }
