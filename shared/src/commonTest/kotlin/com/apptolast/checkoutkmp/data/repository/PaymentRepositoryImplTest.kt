@@ -1,7 +1,7 @@
 package com.apptolast.checkoutkmp.data.repository
 
 import com.apptolast.checkoutkmp.data.psp.FakePsp
-import com.apptolast.checkoutkmp.data.psp.PspScenario
+import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.model.IdempotencyKey
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.PaymentResult
@@ -15,12 +15,12 @@ import kotlin.test.assertTrue
 
 class PaymentRepositoryImplTest {
 
-    private fun repositoryWith(scenario: PspScenario, psp: FakePsp = FakePsp(scenario = scenario)) =
+    private fun repositoryWith(scenario: PaymentScenario, psp: FakePsp = FakePsp(scenario = scenario)) =
         psp to PaymentRepositoryImpl(psp = psp, clock = FixedClock.default)
 
     @Test
     fun approved_scenario_returns_a_pci_safe_receipt() = runTest {
-        val (_, repo) = repositoryWith(PspScenario.APPROVED)
+        val (_, repo) = repositoryWith(PaymentScenario.APPROVED)
 
         val result = repo.authorize(Fixtures.request())
 
@@ -33,7 +33,7 @@ class PaymentRepositoryImplTest {
 
     @Test
     fun declined_scenario_maps_to_declined_error() = runTest {
-        val (_, repo) = repositoryWith(PspScenario.DECLINED)
+        val (_, repo) = repositoryWith(PaymentScenario.DECLINED)
 
         val result = repo.authorize(Fixtures.request())
 
@@ -43,7 +43,7 @@ class PaymentRepositoryImplTest {
 
     @Test
     fun network_failure_maps_to_transient_network_error() = runTest {
-        val (_, repo) = repositoryWith(PspScenario.NETWORK_ERROR)
+        val (_, repo) = repositoryWith(PaymentScenario.NETWORK_ERROR)
 
         val result = repo.authorize(Fixtures.request())
 
@@ -54,7 +54,7 @@ class PaymentRepositoryImplTest {
 
     @Test
     fun timeout_failure_maps_to_transient_timeout_error() = runTest {
-        val (_, repo) = repositoryWith(PspScenario.TIMEOUT)
+        val (_, repo) = repositoryWith(PaymentScenario.TIMEOUT)
 
         val error = assertIs<PaymentResult.Failed>(repo.authorize(Fixtures.request())).error
         assertEquals(PaymentError.Timeout, error)
@@ -63,7 +63,7 @@ class PaymentRepositoryImplTest {
 
     @Test
     fun rate_limited_failure_maps_to_transient_rate_limited_error() = runTest {
-        val (_, repo) = repositoryWith(PspScenario.RATE_LIMITED)
+        val (_, repo) = repositoryWith(PaymentScenario.RATE_LIMITED)
 
         val error = assertIs<PaymentResult.Failed>(repo.authorize(Fixtures.request())).error
         assertEquals(PaymentError.RateLimited, error)
@@ -72,7 +72,7 @@ class PaymentRepositoryImplTest {
 
     @Test
     fun needs_sca_scenario_returns_a_challenge() = runTest {
-        val (_, repo) = repositoryWith(PspScenario.NEEDS_SCA)
+        val (_, repo) = repositoryWith(PaymentScenario.NEEDS_SCA)
 
         val result = repo.authorize(Fixtures.request())
 
@@ -82,7 +82,7 @@ class PaymentRepositoryImplTest {
 
     @Test
     fun authorizing_twice_with_the_same_key_charges_only_once() = runTest {
-        val (psp, repo) = repositoryWith(PspScenario.APPROVED)
+        val (psp, repo) = repositoryWith(PaymentScenario.APPROVED)
         val request = Fixtures.request(IdempotencyKey.random())
 
         val first = repo.authorize(request)
@@ -96,7 +96,7 @@ class PaymentRepositoryImplTest {
 
     @Test
     fun different_keys_produce_separate_charges() = runTest {
-        val (psp, repo) = repositoryWith(PspScenario.APPROVED)
+        val (psp, repo) = repositoryWith(PaymentScenario.APPROVED)
 
         repo.authorize(Fixtures.request(IdempotencyKey.random()))
         repo.authorize(Fixtures.request(IdempotencyKey.random()))
@@ -106,7 +106,7 @@ class PaymentRepositoryImplTest {
 
     @Test
     fun sca_completes_with_the_correct_otp() = runTest {
-        val (_, repo) = repositoryWith(PspScenario.NEEDS_SCA)
+        val (_, repo) = repositoryWith(PaymentScenario.NEEDS_SCA)
         val request = Fixtures.request()
 
         assertIs<PaymentResult.RequiresSca>(repo.authorize(request)) // arm the challenge
@@ -117,7 +117,7 @@ class PaymentRepositoryImplTest {
 
     @Test
     fun sca_fails_with_a_wrong_otp() = runTest {
-        val (_, repo) = repositoryWith(PspScenario.NEEDS_SCA)
+        val (_, repo) = repositoryWith(PaymentScenario.NEEDS_SCA)
         val request = Fixtures.request()
 
         assertIs<PaymentResult.RequiresSca>(repo.authorize(request))

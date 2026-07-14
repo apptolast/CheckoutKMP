@@ -26,6 +26,8 @@
     <!-- %1$s = card brand, %2$s = last four digits -->
     <string name="card_brand_last4">%1$s · •••• %2$s</string>
     <string name="card_brand_only">%1$s</string>
+    <!-- Localized fallback when the card network can't be detected (real brands are proper nouns) -->
+    <string name="card_brand_generic">Card</string>
     <!-- Screen-reader descriptions -->
     <string name="card_ending_in_a11y">%1$s, card ending in %2$s</string>
     <string name="card_brand_card_a11y">%1$s card</string>

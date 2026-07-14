@@ -2,7 +2,7 @@ package com.apptolast.checkoutkmp.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.apptolast.checkoutkmp.data.psp.PspScenarioController
+import com.apptolast.checkoutkmp.domain.simulation.PaymentSimulator
 import com.apptolast.checkoutkmp.domain.tokenizer.CardTokenizer
 import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
 import com.apptolast.checkoutkmp.domain.tokenizer.TokenizationResult
@@ -30,7 +30,7 @@ class CheckoutViewModel(
     private val processPayment: ProcessPaymentUseCase,
     private val completeSca: CompleteScaUseCase,
     private val tokenizer: CardTokenizer,
-    private val scenarioController: PspScenarioController,
+    private val scenarioController: PaymentSimulator,
     initialState: CheckoutState,
 ) : ViewModel() {
 

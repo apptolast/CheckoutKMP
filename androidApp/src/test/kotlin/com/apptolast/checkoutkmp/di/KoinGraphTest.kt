@@ -1,7 +1,7 @@
 package com.apptolast.checkoutkmp.di
 
 import com.apptolast.checkoutkmp.data.di.dataModule
-import com.apptolast.checkoutkmp.data.psp.PspScenarioController
+import com.apptolast.checkoutkmp.domain.simulation.PaymentSimulator
 import com.apptolast.checkoutkmp.domain.tokenizer.CardTokenizer
 import com.apptolast.checkoutkmp.domain.di.domainModule
 import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
@@ -30,6 +30,6 @@ class KoinGraphTest {
         assertNotNull(koin.get<CardTokenizer>())
         assertNotNull(koin.get<ProcessPaymentUseCase>())
         assertNotNull(koin.get<CompleteScaUseCase>())
-        assertNotNull(koin.get<PspScenarioController>())
+        assertNotNull(koin.get<PaymentSimulator>())
     }
 }

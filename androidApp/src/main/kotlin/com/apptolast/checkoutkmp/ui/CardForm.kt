@@ -113,15 +113,16 @@ fun CardForm(
 private fun CardBrandSupportingText(brand: CardBrand, pan: String) {
     val hasLast4 = pan.length >= CardRules.LAST4_LENGTH
     val last4 = pan.takeLast(CardRules.LAST4_LENGTH)
+    val label = brandLabel(brand)
     val visual = if (hasLast4) {
-        stringResource(R.string.card_brand_last4, brand.displayName, last4)
+        stringResource(R.string.card_brand_last4, label, last4)
     } else {
-        stringResource(R.string.card_brand_only, brand.displayName)
+        stringResource(R.string.card_brand_only, label)
     }
     val spoken = if (hasLast4) {
-        stringResource(R.string.card_ending_in_a11y, brand.displayName, last4)
+        stringResource(R.string.card_ending_in_a11y, label, last4)
     } else {
-        stringResource(R.string.card_brand_card_a11y, brand.displayName)
+        stringResource(R.string.card_brand_card_a11y, label)
     }
     key(visual) {
         Text(visual, modifier = Modifier.semantics { contentDescription = spoken })

@@ -38,7 +38,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.apptolast.checkoutkmp.R
-import com.apptolast.checkoutkmp.data.psp.PspScenario
+import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.Receipt
 import com.apptolast.checkoutkmp.presentation.CheckoutIntent
@@ -141,9 +141,9 @@ private fun OrderSummary(state: CheckoutState) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScenarioSelector(
-    selected: PspScenario,
+    selected: PaymentScenario,
     enabled: Boolean,
-    onSelect: (PspScenario) -> Unit,
+    onSelect: (PaymentScenario) -> Unit,
 ) {
     Column {
         Text(
@@ -156,7 +156,7 @@ private fun ScenarioSelector(
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
         ) {
-            PspScenario.entries.forEach { scenario ->
+            PaymentScenario.entries.forEach { scenario ->
                 FilterChip(
                     selected = scenario == selected,
                     enabled = enabled,
@@ -169,14 +169,14 @@ private fun ScenarioSelector(
 }
 
 @get:StringRes
-private val PspScenario.labelRes: Int
+private val PaymentScenario.labelRes: Int
     get() = when (this) {
-        PspScenario.APPROVED -> R.string.scenario_approved
-        PspScenario.NEEDS_SCA -> R.string.scenario_needs_sca
-        PspScenario.DECLINED -> R.string.scenario_declined
-        PspScenario.NETWORK_ERROR -> R.string.scenario_network_error
-        PspScenario.TIMEOUT -> R.string.scenario_timeout
-        PspScenario.RATE_LIMITED -> R.string.scenario_rate_limited
+        PaymentScenario.APPROVED -> R.string.scenario_approved
+        PaymentScenario.NEEDS_SCA -> R.string.scenario_needs_sca
+        PaymentScenario.DECLINED -> R.string.scenario_declined
+        PaymentScenario.NETWORK_ERROR -> R.string.scenario_network_error
+        PaymentScenario.TIMEOUT -> R.string.scenario_timeout
+        PaymentScenario.RATE_LIMITED -> R.string.scenario_rate_limited
     }
 
 @Composable
@@ -293,13 +293,14 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
         Text(receipt.amount.formatWithCurrency(), style = MaterialTheme.typography.headlineMedium)
         // Read the masked card cleanly instead of "dot dot dot dot 4242". Resolved here (not inside
         // the semantics lambda) because stringResource is @Composable.
+        val brand = brandLabel(receipt.brand)
         val maskedCardDescription = stringResource(
             R.string.card_ending_in_a11y,
-            receipt.brand.displayName,
+            brand,
             receipt.maskedCard.takeLast(MASKED_CARD_VISIBLE_DIGITS),
         )
         Text(
-            stringResource(R.string.receipt_brand_masked, receipt.brand.displayName, receipt.maskedCard),
+            stringResource(R.string.receipt_brand_masked, brand, receipt.maskedCard),
             textAlign = TextAlign.Center,
             modifier = Modifier.semantics { contentDescription = maskedCardDescription },
         )

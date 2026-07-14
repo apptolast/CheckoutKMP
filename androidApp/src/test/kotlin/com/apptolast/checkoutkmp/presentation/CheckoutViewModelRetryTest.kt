@@ -1,7 +1,7 @@
 package com.apptolast.checkoutkmp.presentation
 
 import com.apptolast.checkoutkmp.data.psp.FakePsp
-import com.apptolast.checkoutkmp.data.psp.PspScenario
+import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.data.repository.PaymentRepositoryImpl
 import com.apptolast.checkoutkmp.data.repository.RetryingPaymentRepository
 import com.apptolast.checkoutkmp.data.tokenizer.FakeCardTokenizer
@@ -31,7 +31,7 @@ class CheckoutViewModelRetryTest {
     private val dispatcher = StandardTestDispatcher()
     private val validCard = RawCard(pan = "4242424242424242", expiry = CardExpiry(12, 2030), cvv = "123")
 
-    private fun viewModel(scenario: PspScenario): CheckoutViewModel {
+    private fun viewModel(scenario: PaymentScenario): CheckoutViewModel {
         val psp = FakePsp()
         // Mirror production wiring, but retry instantly (no real backoff) under the test.
         val repo = RetryingPaymentRepository(PaymentRepositoryImpl(psp = psp), onDelay = {})
@@ -52,7 +52,7 @@ class CheckoutViewModelRetryTest {
 
     @Test
     fun a_persistent_transient_failure_surfaces_after_retries() = runTest {
-        val vm = viewModel(PspScenario.NETWORK_ERROR)
+        val vm = viewModel(PaymentScenario.NETWORK_ERROR)
 
         vm.onIntent(CheckoutIntent.Submit(validCard))
         advanceUntilIdle()
@@ -63,7 +63,7 @@ class CheckoutViewModelRetryTest {
 
     @Test
     fun retrying_a_transient_failure_keeps_trying_the_same_way() = runTest {
-        val vm = viewModel(PspScenario.NETWORK_ERROR)
+        val vm = viewModel(PaymentScenario.NETWORK_ERROR)
 
         vm.onIntent(CheckoutIntent.Submit(validCard))
         advanceUntilIdle()
@@ -77,7 +77,7 @@ class CheckoutViewModelRetryTest {
 
     @Test
     fun retrying_a_decline_returns_to_editing() = runTest {
-        val vm = viewModel(PspScenario.DECLINED)
+        val vm = viewModel(PaymentScenario.DECLINED)
 
         vm.onIntent(CheckoutIntent.Submit(validCard))
         advanceUntilIdle()

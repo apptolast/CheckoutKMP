@@ -1,6 +1,6 @@
 package com.apptolast.checkoutkmp.presentation
 
-import com.apptolast.checkoutkmp.data.psp.PspScenario
+import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
 
 /** User intents for the checkout screen (the "I" in MVI). */
@@ -10,7 +10,7 @@ sealed interface CheckoutIntent {
     data class SelectMethod(val option: MethodOption) : CheckoutIntent
 
     /** Pick which behaviour the fake PSP should simulate on the next payment (demo control). */
-    data class SelectScenario(val scenario: PspScenario) : CheckoutIntent
+    data class SelectScenario(val scenario: PaymentScenario) : CheckoutIntent
 
     /**
      * Submit the card for payment. [card] carries the raw PAN/CVV **transiently** — the ViewModel

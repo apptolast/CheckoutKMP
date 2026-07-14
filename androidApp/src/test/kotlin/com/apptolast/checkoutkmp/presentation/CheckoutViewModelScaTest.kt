@@ -1,7 +1,7 @@
 package com.apptolast.checkoutkmp.presentation
 
 import com.apptolast.checkoutkmp.data.psp.FakePsp
-import com.apptolast.checkoutkmp.data.psp.PspScenario
+import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.data.repository.PaymentRepositoryImpl
 import com.apptolast.checkoutkmp.data.tokenizer.FakeCardTokenizer
 import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
@@ -40,7 +40,7 @@ class CheckoutViewModelScaTest {
             tokenizer = FakeCardTokenizer(),
             scenarioController = psp,
             // State is the source of truth; init syncs this onto the PSP.
-            initialState = CheckoutState(amount = Amount(4999, Currency.EUR), scenario = PspScenario.NEEDS_SCA),
+            initialState = CheckoutState(amount = Amount(4999, Currency.EUR), scenario = PaymentScenario.NEEDS_SCA),
         )
         return psp to vm
     }
@@ -102,9 +102,9 @@ class CheckoutViewModelScaTest {
     fun selecting_a_scenario_updates_the_psp() = runTest {
         val (psp, vm) = newViewModel()
 
-        vm.onIntent(CheckoutIntent.SelectScenario(PspScenario.DECLINED))
+        vm.onIntent(CheckoutIntent.SelectScenario(PaymentScenario.DECLINED))
 
-        assertEquals(PspScenario.DECLINED, psp.scenario)
-        assertEquals(PspScenario.DECLINED, vm.state.value.scenario)
+        assertEquals(PaymentScenario.DECLINED, psp.scenario)
+        assertEquals(PaymentScenario.DECLINED, vm.state.value.scenario)
     }
 }

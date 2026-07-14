@@ -1,7 +1,7 @@
 package com.apptolast.checkoutkmp.security
 
 import com.apptolast.checkoutkmp.data.psp.FakePsp
-import com.apptolast.checkoutkmp.data.psp.PspScenario
+import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.data.repository.PaymentRepositoryImpl
 import com.apptolast.checkoutkmp.data.tokenizer.FakeCardTokenizer
 import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
@@ -60,8 +60,8 @@ class GoldenRuleTest {
             idempotencyKey = IdempotencyKey.random(),
         )
 
-        val approved = PaymentRepositoryImpl(FakePsp(scenario = PspScenario.APPROVED)).authorize(request)
-        val challenge = PaymentRepositoryImpl(FakePsp(scenario = PspScenario.NEEDS_SCA)).authorize(request)
+        val approved = PaymentRepositoryImpl(FakePsp(scenario = PaymentScenario.APPROVED)).authorize(request)
+        val challenge = PaymentRepositoryImpl(FakePsp(scenario = PaymentScenario.NEEDS_SCA)).authorize(request)
 
         val states = listOf(
             PaymentState.Idle,

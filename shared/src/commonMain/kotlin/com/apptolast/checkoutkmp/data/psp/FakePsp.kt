@@ -2,6 +2,8 @@ package com.apptolast.checkoutkmp.data.psp
 
 import com.apptolast.checkoutkmp.domain.model.IdempotencyKey
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
+import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
+import com.apptolast.checkoutkmp.domain.simulation.PaymentSimulator
 import kotlinx.coroutines.delay
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -18,10 +20,10 @@ import kotlin.uuid.Uuid
  * PCI note: only tokens/last4 reach this class via [PaymentRequest]; no PAN is ever handled here.
  */
 class FakePsp(
-    override var scenario: PspScenario = PspScenario.APPROVED,
+    override var scenario: PaymentScenario = PaymentScenario.APPROVED,
     private val latency: Duration = 0.milliseconds,
     private val validOtp: String = "123456",
-) : Psp, PspScenarioController {
+) : Psp, PaymentSimulator {
 
     private val ledger = mutableMapOf<IdempotencyKey, PspResponse>()
 
@@ -40,31 +42,31 @@ class FakePsp(
 
         chargeCount++
         val response = when (scenario) {
-            PspScenario.APPROVED -> PspResponse.Approved(
+            PaymentScenario.APPROVED -> PspResponse.Approved(
                 pspPaymentId = "pay_${Uuid.random()}",
                 authCode = "AUTH${Uuid.random().toString().take(6).uppercase()}",
             )
-            PspScenario.NEEDS_SCA -> PspResponse.ScaRequired(
+            PaymentScenario.NEEDS_SCA -> PspResponse.ScaRequired(
                 challengeId = "ch_${Uuid.random()}",
                 deliveryHint = "•••• 90",
                 otpLength = validOtp.length,
             )
-            PspScenario.DECLINED -> PspResponse.Declined(
+            PaymentScenario.DECLINED -> PspResponse.Declined(
                 code = "insufficient_funds",
                 message = "The card was declined",
             )
-            PspScenario.NETWORK_ERROR,
-            PspScenario.TIMEOUT,
-            PspScenario.RATE_LIMITED -> error("handled above")
+            PaymentScenario.NETWORK_ERROR,
+            PaymentScenario.TIMEOUT,
+            PaymentScenario.RATE_LIMITED -> error("handled above")
         }
         ledger[request.idempotencyKey] = response
         return response
     }
 
-    private fun transientKind(scenario: PspScenario): PspException.Kind? = when (scenario) {
-        PspScenario.NETWORK_ERROR -> PspException.Kind.NETWORK
-        PspScenario.TIMEOUT -> PspException.Kind.TIMEOUT
-        PspScenario.RATE_LIMITED -> PspException.Kind.RATE_LIMITED
+    private fun transientKind(scenario: PaymentScenario): PspException.Kind? = when (scenario) {
+        PaymentScenario.NETWORK_ERROR -> PspException.Kind.NETWORK
+        PaymentScenario.TIMEOUT -> PspException.Kind.TIMEOUT
+        PaymentScenario.RATE_LIMITED -> PspException.Kind.RATE_LIMITED
         else -> null
     }
 

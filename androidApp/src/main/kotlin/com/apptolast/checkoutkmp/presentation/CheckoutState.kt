@@ -2,7 +2,7 @@ package com.apptolast.checkoutkmp.presentation
 
 import androidx.annotation.StringRes
 import com.apptolast.checkoutkmp.R
-import com.apptolast.checkoutkmp.data.psp.PspScenario
+import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.Receipt
@@ -22,7 +22,7 @@ enum class MethodOption(@param:StringRes val labelRes: Int) {
 data class CheckoutState(
     val amount: Amount,
     val method: MethodOption = MethodOption.CARD,
-    val scenario: PspScenario = PspScenario.APPROVED,
+    val scenario: PaymentScenario = PaymentScenario.APPROVED,
     val status: CheckoutStatus = CheckoutStatus.Editing,
 ) {
     val isProcessing: Boolean get() = status is CheckoutStatus.Processing

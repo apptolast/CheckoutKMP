@@ -1,7 +1,7 @@
 package com.apptolast.checkoutkmp.presentation
 
 import com.apptolast.checkoutkmp.data.psp.FakePsp
-import com.apptolast.checkoutkmp.data.psp.PspScenario
+import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.data.repository.PaymentRepositoryImpl
 import com.apptolast.checkoutkmp.data.tokenizer.FakeCardTokenizer
 import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
@@ -40,7 +40,7 @@ class GoldenRuleStateTest {
 
     @Test
     fun exposed_state_never_contains_the_pan_after_paying() = runTest {
-        val psp = FakePsp(scenario = PspScenario.APPROVED)
+        val psp = FakePsp(scenario = PaymentScenario.APPROVED)
         val repo = PaymentRepositoryImpl(psp = psp)
         val vm = CheckoutViewModel(
             processPayment = ProcessPaymentUseCase(repo),
