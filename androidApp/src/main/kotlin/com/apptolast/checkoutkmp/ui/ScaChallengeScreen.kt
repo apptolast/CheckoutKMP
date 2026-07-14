@@ -17,12 +17,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
+import com.apptolast.checkoutkmp.R
 import com.apptolast.checkoutkmp.domain.model.ScaChallenge
 
 /**
@@ -32,18 +33,18 @@ import com.apptolast.checkoutkmp.domain.model.ScaChallenge
 @Composable
 fun ScaChallengeScreen(
     challenge: ScaChallenge,
-    otpError: String?,
+    otpError: Boolean,
     isVerifying: Boolean,
     onVerify: (String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var otp by remember { mutableStateOf("") }
-    val hint = challenge.deliveryHint ?: "your device"
+    val deliveryTarget = challenge.deliveryHint ?: stringResource(R.string.sca_delivery_default)
 
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
         Text(
-            "3D Secure verification",
+            stringResource(R.string.sca_title),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.semantics {
                 heading()
@@ -51,11 +52,11 @@ fun ScaChallengeScreen(
             },
         )
         Text(
-            "Enter the ${challenge.otpLength}-digit code sent to $hint.",
+            stringResource(R.string.sca_code_prompt, challenge.otpLength, deliveryTarget),
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
-            "Demo code: 123456",
+            stringResource(R.string.sca_demo_code),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.outline,
         )
@@ -63,12 +64,15 @@ fun ScaChallengeScreen(
         OutlinedTextField(
             value = otp,
             onValueChange = { otp = digitsOnly(it, max = challenge.otpLength) },
-            label = { Text("Verification code") },
-            isError = otpError != null,
+            label = { Text(stringResource(R.string.sca_code_label)) },
+            isError = otpError,
             supportingText = {
-                otpError?.let {
+                if (otpError) {
                     // Announce a wrong-code error assertively so it interrupts and is not missed.
-                    Text(it, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
+                    Text(
+                        stringResource(R.string.sca_error_wrong_code),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                    )
                 }
             },
             singleLine = true,
@@ -86,14 +90,14 @@ fun ScaChallengeScreen(
             enabled = !isVerifying && otp.length == challenge.otpLength,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Verify")
+            Text(stringResource(R.string.action_verify))
         }
         OutlinedButton(
             onClick = onCancel,
             enabled = !isVerifying,
-            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = Dimens.spacingTiny),
         ) {
-            Text("Cancel")
+            Text(stringResource(R.string.action_cancel))
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.apptolast.checkoutkmp.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,14 +29,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.apptolast.checkoutkmp.R
 import com.apptolast.checkoutkmp.data.psp.PspScenario
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.Receipt
@@ -45,6 +47,9 @@ import com.apptolast.checkoutkmp.presentation.CheckoutStatus
 import com.apptolast.checkoutkmp.presentation.MethodOption
 import com.apptolast.checkoutkmp.presentation.CheckoutViewModel
 import org.koin.androidx.compose.koinViewModel
+
+// Number of trailing digits kept visible in a masked card (e.g. •••• 4242).
+private const val MASKED_CARD_VISIBLE_DIGITS = 4
 
 // Accessibility note: these screens are plain vertical Column/Row layouts, so the natural focus
 // and reading order already matches the visual order. We deliberately do NOT set traversalIndex —
@@ -63,14 +68,14 @@ fun CheckoutScreen(
     onIntent: (CheckoutIntent) -> Unit,
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Checkout") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.checkout_title)) }) },
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+                .padding(horizontal = Dimens.spacingXLarge, vertical = Dimens.spacingLarge),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacingXLarge),
         ) {
             when (val status = state.status) {
                 is CheckoutStatus.Approved -> ReceiptView(
@@ -120,8 +125,11 @@ fun CheckoutScreen(
 @Composable
 private fun OrderSummary(state: CheckoutState) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Order total", style = MaterialTheme.typography.labelMedium)
+        Column(
+            modifier = Modifier.padding(Dimens.spacingLarge),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacingXSmall),
+        ) {
+            Text(stringResource(R.string.order_total_label), style = MaterialTheme.typography.labelMedium)
             Text(
                 state.amount.formatWithCurrency(),
                 style = MaterialTheme.typography.headlineSmall,
@@ -139,35 +147,36 @@ private fun ScenarioSelector(
 ) {
     Column {
         Text(
-            "Test scenario (demo)",
+            stringResource(R.string.test_scenario_heading),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.semantics { heading() },
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(Dimens.spacingSmall))
         Row(
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
         ) {
             PspScenario.entries.forEach { scenario ->
                 FilterChip(
                     selected = scenario == selected,
                     enabled = enabled,
                     onClick = { onSelect(scenario) },
-                    label = { Text(scenario.demoLabel) },
+                    label = { Text(stringResource(scenario.labelRes)) },
                 )
             }
         }
     }
 }
 
-private val PspScenario.demoLabel: String
+@get:StringRes
+private val PspScenario.labelRes: Int
     get() = when (this) {
-        PspScenario.APPROVED -> "Approved"
-        PspScenario.NEEDS_SCA -> "3D Secure"
-        PspScenario.DECLINED -> "Declined"
-        PspScenario.NETWORK_ERROR -> "Network error"
-        PspScenario.TIMEOUT -> "Timeout"
-        PspScenario.RATE_LIMITED -> "Rate limited"
+        PspScenario.APPROVED -> R.string.scenario_approved
+        PspScenario.NEEDS_SCA -> R.string.scenario_needs_sca
+        PspScenario.DECLINED -> R.string.scenario_declined
+        PspScenario.NETWORK_ERROR -> R.string.scenario_network_error
+        PspScenario.TIMEOUT -> R.string.scenario_timeout
+        PspScenario.RATE_LIMITED -> R.string.scenario_rate_limited
     }
 
 @Composable
@@ -178,24 +187,24 @@ private fun MethodSelector(
 ) {
     Column {
         Text(
-            "Payment method",
+            stringResource(R.string.payment_method_heading),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.semantics { heading() },
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(Dimens.spacingSmall))
         MethodOption.entries.forEach { option ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
                     .selectable(selected = option == selected, enabled = enabled) { onSelect(option) }
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = Dimens.spacingXSmall),
             ) {
                 RadioButton(selected = option == selected, enabled = enabled, onClick = { onSelect(option) })
-                Text(option.label, style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(option.labelRes), style = MaterialTheme.typography.bodyLarge)
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(top = Dimens.spacingSmall))
     }
 }
 
@@ -206,15 +215,16 @@ private fun MethodSelector(
  */
 @Composable
 private fun StatusLine(status: CheckoutStatus) {
-    val message = if (status is CheckoutStatus.Processing) "Processing payment…" else ""
+    val isProcessing = status is CheckoutStatus.Processing
+    val message = if (isProcessing) stringResource(R.string.status_processing) else ""
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
     ) {
-        if (status is CheckoutStatus.Processing) {
-            CircularProgressIndicator(modifier = Modifier.size(20.dp))
+        if (isProcessing) {
+            CircularProgressIndicator(modifier = Modifier.size(Dimens.inlineProgressSize))
         }
         Text(
             text = message,
@@ -240,10 +250,10 @@ private fun FailureView(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium),
     ) {
         Text(
-            "Payment failed",
+            stringResource(R.string.failure_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.semantics {
@@ -255,11 +265,11 @@ private fun FailureView(
 
         if (error.isTransient) {
             Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
-                Text("Retry")
+                Text(stringResource(R.string.action_retry))
             }
         }
         OutlinedButton(onClick = onStartOver, modifier = Modifier.fillMaxWidth()) {
-            Text("Start over")
+            Text(stringResource(R.string.action_start_over))
         }
     }
 }
@@ -269,10 +279,10 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium),
     ) {
         Text(
-            "Payment approved",
+            stringResource(R.string.success_title),
             style = MaterialTheme.typography.headlineSmall,
             // Announce success on arrival and expose it as a heading for navigation.
             modifier = Modifier.semantics {
@@ -281,30 +291,41 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
             },
         )
         Text(receipt.amount.formatWithCurrency(), style = MaterialTheme.typography.headlineMedium)
-        Text(
-            "${receipt.brand.displayName} · ${receipt.maskedCard}",
-            textAlign = TextAlign.Center,
-            // Read the masked card cleanly instead of "dot dot dot dot 4242".
-            modifier = Modifier.semantics {
-                contentDescription = "${receipt.brand.displayName}, card ending in ${receipt.maskedCard.takeLast(4)}"
-            },
+        // Read the masked card cleanly instead of "dot dot dot dot 4242". Resolved here (not inside
+        // the semantics lambda) because stringResource is @Composable.
+        val maskedCardDescription = stringResource(
+            R.string.card_ending_in_a11y,
+            receipt.brand.displayName,
+            receipt.maskedCard.takeLast(MASKED_CARD_VISIBLE_DIGITS),
         )
-        Text("Auth code: ${receipt.authCode}", style = MaterialTheme.typography.bodySmall)
-        Text("Payment id: ${receipt.paymentId}", style = MaterialTheme.typography.bodySmall)
-        OutlinedButton(onClick = onDone, modifier = Modifier.padding(top = 8.dp)) {
-            Text("New payment")
+        Text(
+            stringResource(R.string.receipt_brand_masked, receipt.brand.displayName, receipt.maskedCard),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { contentDescription = maskedCardDescription },
+        )
+        Text(
+            stringResource(R.string.receipt_auth_code, receipt.authCode),
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Text(
+            stringResource(R.string.receipt_payment_id, receipt.paymentId),
+            style = MaterialTheme.typography.bodySmall,
+        )
+        OutlinedButton(onClick = onDone, modifier = Modifier.padding(top = Dimens.spacingSmall)) {
+            Text(stringResource(R.string.action_new_payment))
         }
     }
 }
 
-/** Basic per-type message; phase 7 replaces this with the full accessible error taxonomy. */
+/** Maps a domain [PaymentError] to its localized, user-facing message. */
+@Composable
 private fun errorMessage(error: PaymentError): String = when (error) {
-    is PaymentError.Declined -> "Your card was declined (${error.reason})."
-    is PaymentError.InvalidCard -> "Card details are invalid: ${error.reason}."
-    PaymentError.Network -> "Network problem. Please try again."
-    PaymentError.Timeout -> "The request timed out. Please try again."
-    PaymentError.RateLimited -> "Too many attempts. Please wait a moment."
-    is PaymentError.ScaFailed -> "Authentication failed (${error.reason})."
-    PaymentError.Cancelled -> "Payment cancelled."
-    is PaymentError.Unknown -> "Something went wrong. Please try again."
+    is PaymentError.Declined -> stringResource(R.string.error_declined, error.reason)
+    is PaymentError.InvalidCard -> stringResource(R.string.error_invalid_card, error.reason)
+    PaymentError.Network -> stringResource(R.string.error_network)
+    PaymentError.Timeout -> stringResource(R.string.error_timeout)
+    PaymentError.RateLimited -> stringResource(R.string.error_rate_limited)
+    is PaymentError.ScaFailed -> stringResource(R.string.error_sca_failed, error.reason)
+    PaymentError.Cancelled -> stringResource(R.string.error_cancelled)
+    is PaymentError.Unknown -> stringResource(R.string.error_unknown)
 }

@@ -7,8 +7,8 @@ import com.apptolast.checkoutkmp.presentation.CheckoutViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
-/** Demo order total shown on the checkout screen. */
-private val demoAmount = Amount(minorUnits = 4999, currency = Currency.EUR)
+/** Demo order total shown on the checkout screen (€49.99). */
+private val demoAmount = Amount.of(major = 49, minor = 99, currency = Currency.EUR)
 
 /** Koin bindings for the Android presentation layer. */
 val presentationModule = module {

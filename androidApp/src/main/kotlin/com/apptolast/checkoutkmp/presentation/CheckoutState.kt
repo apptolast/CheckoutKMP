@@ -1,14 +1,16 @@
 package com.apptolast.checkoutkmp.presentation
 
+import androidx.annotation.StringRes
+import com.apptolast.checkoutkmp.R
 import com.apptolast.checkoutkmp.data.psp.PspScenario
 import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.Receipt
 import com.apptolast.checkoutkmp.domain.model.ScaChallenge
 
-/** The payment methods the user can pick in the demo. */
-enum class MethodOption(val label: String) {
-    CARD("Credit / debit card"),
+/** The payment methods the user can pick in the demo. [labelRes] is resolved to a localized label by the UI. */
+enum class MethodOption(@param:StringRes val labelRes: Int) {
+    CARD(R.string.method_card),
 }
 
 /**
@@ -35,12 +37,13 @@ sealed interface CheckoutStatus {
     data object Processing : CheckoutStatus
 
     /**
-     * 3D Secure required. [isVerifying] is true while an OTP is being checked; [otpError] holds the
-     * inline message after a wrong code so the user can retry without losing the challenge.
+     * 3D Secure required. [isVerifying] is true while an OTP is being checked; [otpError] is true
+     * after a wrong code so the UI can show a localized message and let the user retry without
+     * losing the challenge. The message text itself lives in the UI layer, not in this state.
      */
     data class RequiresSca(
         val challenge: ScaChallenge,
-        val otpError: String? = null,
+        val otpError: Boolean = false,
         val isVerifying: Boolean = false,
     ) : CheckoutStatus
 

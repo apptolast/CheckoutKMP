@@ -23,6 +23,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CheckoutViewModelScaTest {
@@ -82,7 +83,7 @@ class CheckoutViewModelScaTest {
         advanceUntilIdle()
 
         val status = assertIs<CheckoutStatus.RequiresSca>(vm.state.value.status)
-        assertEquals("Incorrect code, try again.", status.otpError)
+        assertTrue(status.otpError, "a wrong OTP should flag an error on the retained challenge")
     }
 
     @Test

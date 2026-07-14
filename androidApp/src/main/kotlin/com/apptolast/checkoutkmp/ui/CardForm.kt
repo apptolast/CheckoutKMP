@@ -16,14 +16,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
+import com.apptolast.checkoutkmp.R
 import com.apptolast.checkoutkmp.data.tokenizer.RawCard
 import com.apptolast.checkoutkmp.domain.model.CardBrand
 import com.apptolast.checkoutkmp.domain.model.CardExpiry
 import com.apptolast.checkoutkmp.domain.usecase.Luhn
+
+// Card field bounds. The PAN range spans the shortest (some Maestro) to longest (19-digit) cards.
+private const val MIN_PAN_LENGTH = 12
+private const val MAX_PAN_LENGTH = 19
+private const val MIN_CVV_LENGTH = 3
+private const val MAX_CVV_LENGTH = 4
+private const val EXPIRY_MAX_DIGITS = 4
+private const val LAST_FOUR = 4
 
 /**
  * Card entry form with live validation.
@@ -42,26 +51,18 @@ fun CardForm(
     var cvv by remember { mutableStateOf("") }        // sensitive — UI-only
 
     val brand = CardBrand.detect(pan)
-    val panValid = pan.length in 12..19 && Luhn.isValid(pan)
+    val panValid = pan.length in MIN_PAN_LENGTH..MAX_PAN_LENGTH && Luhn.isValid(pan)
     val parsedExpiry = CardExpiry.parse(expiry)
     val expiryValid = parsedExpiry != null && !parsedExpiry.isExpiredNow()
-    val cvvValid = cvv.length in 3..4
+    val cvvValid = cvv.length in MIN_CVV_LENGTH..MAX_CVV_LENGTH
     val formValid = panValid && expiryValid && cvvValid
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
         OutlinedTextField(
             value = pan,
-            onValueChange = { pan = digitsOnly(it, max = 19) },
-            label = { Text("Card number") },
-            supportingText = {
-                val visual = if (pan.length >= 4) "${brand.displayName} · •••• ${pan.takeLast(4)}" else brand.displayName
-                val spoken = if (pan.length >= 4) "${brand.displayName}, card ending in ${pan.takeLast(4)}" else "${brand.displayName} card"
-                // key() gives the node a fresh identity per distinct value, so screen readers don't
-                // re-announce the previous brand/last4 while the number is still being typed.
-                key(visual) {
-                    Text(visual, modifier = Modifier.semantics { contentDescription = spoken })
-                }
-            },
+            onValueChange = { pan = digitsOnly(it, max = MAX_PAN_LENGTH) },
+            label = { Text(stringResource(R.string.card_number_label)) },
+            supportingText = { CardBrandSupportingText(brand, pan) },
             isError = pan.isNotEmpty() && !panValid,
             singleLine = true,
             enabled = enabled,
@@ -70,11 +71,11 @@ fun CardForm(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
             OutlinedTextField(
                 value = expiry,
-                onValueChange = { expiry = digitsOnly(it, max = 4) },
-                label = { Text("MM/YY") },
+                onValueChange = { expiry = digitsOnly(it, max = EXPIRY_MAX_DIGITS) },
+                label = { Text(stringResource(R.string.card_expiry_label)) },
                 isError = expiry.isNotEmpty() && !expiryValid,
                 singleLine = true,
                 enabled = enabled,
@@ -84,8 +85,8 @@ fun CardForm(
             )
             OutlinedTextField(
                 value = cvv,
-                onValueChange = { cvv = digitsOnly(it, max = 4) },
-                label = { Text("CVV") },
+                onValueChange = { cvv = digitsOnly(it, max = MAX_CVV_LENGTH) },
+                label = { Text(stringResource(R.string.card_cvv_label)) },
                 isError = cvv.isNotEmpty() && !cvvValid,
                 singleLine = true,
                 enabled = enabled,
@@ -100,9 +101,33 @@ fun CardForm(
                 onSubmit(RawCard(pan = pan, expiry = exp, cvv = cvv))
             },
             enabled = enabled && formValid,
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = Dimens.spacingXSmall),
         ) {
-            Text("Pay")
+            Text(stringResource(R.string.action_pay))
         }
+    }
+}
+
+/**
+ * Supporting text under the card field: shows the detected brand and, once enough digits are
+ * entered, the masked last four. A [key] gives the node a fresh identity per distinct value so
+ * screen readers don't re-announce the previous brand/last4 while the number is still being typed.
+ */
+@Composable
+private fun CardBrandSupportingText(brand: CardBrand, pan: String) {
+    val hasLast4 = pan.length >= LAST_FOUR
+    val last4 = pan.takeLast(LAST_FOUR)
+    val visual = if (hasLast4) {
+        stringResource(R.string.card_brand_last4, brand.displayName, last4)
+    } else {
+        stringResource(R.string.card_brand_only, brand.displayName)
+    }
+    val spoken = if (hasLast4) {
+        stringResource(R.string.card_ending_in_a11y, brand.displayName, last4)
+    } else {
+        stringResource(R.string.card_brand_card_a11y, brand.displayName)
+    }
+    key(visual) {
+        Text(visual, modifier = Modifier.semantics { contentDescription = spoken })
     }
 }

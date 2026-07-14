@@ -133,7 +133,7 @@ class CheckoutViewModel(
                     is PaymentState.Failed ->
                         if (paymentState.error is PaymentError.ScaFailed) {
                             // Keep the challenge so the user can re-enter the code.
-                            CheckoutStatus.RequiresSca(challenge, otpError = "Incorrect code, try again.")
+                            CheckoutStatus.RequiresSca(challenge, otpError = true)
                         } else {
                             pendingRequest = null
                             CheckoutStatus.Failed(paymentState.error)
