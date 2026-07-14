@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- card outline -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="4"
+        android:pathData="M33,42 H75 A5,5 0 0 1 80,47 V63 A5,5 0 0 1 75,68 H33 A5,5 0 0 1 28,63 V47 A5,5 0 0 1 33,42 Z" />
+
+    <!-- stripe -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M28,49 H80 V54 H28 Z" />
+
+    <!-- checkmark -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M40,72 L50,82 L72,60" />
+</vector>
