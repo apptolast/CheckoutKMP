@@ -35,8 +35,9 @@ Clean Architecture con la lógica de negocio 100 % en Kotlin común (sin Android
 - **data** implementa los contratos del dominio (repositorios, PSP simulado, tokenizador).
 - **UI** (solo Android) sigue **MVI**: estado inmutable + intents, alimentado por los casos de uso.
 - **DI** con **Koin** (KMP en `:shared`, `koin-android` en la app).
-- Targets **iOS preparados pero desactivados** (comentados en `shared/build.gradle.kts`);
-  la lógica se escribe para que puedan activarse sin tocar `commonMain`.
+- Targets **iOS activados** (`iosArm64` + `iosSimulatorArm64`, framework `Shared`). `commonMain` es
+  agnóstico de plataforma, así que no necesita `iosMain`. La compilación/enlazado de los targets Apple
+  **requiere macOS + Xcode** (en otros hosts Gradle los configura pero no ejecuta sus tareas nativas).
 
 ## Módulos
 
@@ -44,7 +45,7 @@ Clean Architecture con la lógica de negocio 100 % en Kotlin común (sin Android
 |---------------|---------------------------------------------------------------------|
 | `:shared`     | Lógica compartida: `commonMain` (domain + data), `commonTest`, `androidMain`. |
 | `:androidApp` | Aplicación Android con Compose y patrón MVI.                         |
-| `iosApp`      | Punto de entrada iOS (preparado; targets desactivados por ahora).   |
+| `iosApp`      | App SwiftUI nativa que consume el framework `Shared` (targets iOS activados). |
 
 ### Stack
 
@@ -66,6 +67,11 @@ Requisitos: JDK 17+, Android SDK (definido en `local.properties` → `sdk.dir`).
 ```
 
 En Android Studio: usa las run configurations del widget de ejecución.
+
+**iOS (requiere macOS + Xcode):** abre `iosApp/iosApp.xcodeproj` en Xcode y ejecútalo; el build embebe
+el framework `Shared`. También puedes compilar la lógica para iOS con
+`./gradlew :shared:linkDebugFrameworkIosSimulatorArm64` (solo en macOS) o correr sus tests con
+`./gradlew :shared:iosSimulatorArm64Test`.
 
 ## Roadmap por fases
 

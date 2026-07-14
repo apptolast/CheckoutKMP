@@ -12,19 +12,19 @@ kotlin {
         optIn.add("kotlin.uuid.ExperimentalUuidApi")
     }
 
-    // --- iOS targets: prepared but DISABLED for now ---------------------------
-    // The domain/data code is written to stay platform-agnostic so these can be
-    // switched on later without touching commonMain. Uncomment to enable iOS.
-    //
-    // listOf(
-    //     iosArm64(),
-    //     iosSimulatorArm64()
-    // ).forEach { iosTarget ->
-    //     iosTarget.binaries.framework {
-    //         baseName = "Shared"
-    //         isStatic = true
-    //     }
-    // }
+    // --- iOS targets ----------------------------------------------------------
+    // commonMain stays platform-agnostic (coroutines, datetime, koin-core, stdlib),
+    // so no iosMain actuals are required. Apple targets can only be COMPILED/LINKED
+    // on macOS with Xcode — on other hosts these tasks are configured but not run.
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64(),
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "Shared"
+            isStatic = true
+        }
+    }
     // --------------------------------------------------------------------------
 
     androidLibrary {
