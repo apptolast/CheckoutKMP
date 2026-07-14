@@ -17,6 +17,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.apptolast.checkoutkmp.domain.model.ScaChallenge
@@ -38,7 +42,14 @@ fun ScaChallengeScreen(
     val hint = challenge.deliveryHint ?: "your device"
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("3D Secure verification", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "3D Secure verification",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.semantics {
+                heading()
+                liveRegion = LiveRegionMode.Polite
+            },
+        )
         Text(
             "Enter the ${challenge.otpLength}-digit code sent to $hint.",
             style = MaterialTheme.typography.bodyMedium,
@@ -54,7 +65,12 @@ fun ScaChallengeScreen(
             onValueChange = { otp = digitsOnly(it, max = challenge.otpLength) },
             label = { Text("Verification code") },
             isError = otpError != null,
-            supportingText = { otpError?.let { Text(it) } },
+            supportingText = {
+                otpError?.let {
+                    // Announce a wrong-code error assertively so it interrupts and is not missed.
+                    Text(it, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
+                }
+            },
             singleLine = true,
             enabled = !isVerifying,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

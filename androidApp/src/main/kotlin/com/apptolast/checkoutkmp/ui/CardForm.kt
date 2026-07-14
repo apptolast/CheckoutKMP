@@ -11,10 +11,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.apptolast.checkoutkmp.data.tokenizer.RawCard
@@ -51,7 +54,13 @@ fun CardForm(
             onValueChange = { pan = digitsOnly(it, max = 19) },
             label = { Text("Card number") },
             supportingText = {
-                Text(if (pan.length >= 4) "${brand.displayName} · •••• ${pan.takeLast(4)}" else brand.displayName)
+                val visual = if (pan.length >= 4) "${brand.displayName} · •••• ${pan.takeLast(4)}" else brand.displayName
+                val spoken = if (pan.length >= 4) "${brand.displayName}, card ending in ${pan.takeLast(4)}" else "${brand.displayName} card"
+                // key() gives the node a fresh identity per distinct value, so screen readers don't
+                // re-announce the previous brand/last4 while the number is still being typed.
+                key(visual) {
+                    Text(visual, modifier = Modifier.semantics { contentDescription = spoken })
+                }
             },
             isError = pan.isNotEmpty() && !panValid,
             singleLine = true,

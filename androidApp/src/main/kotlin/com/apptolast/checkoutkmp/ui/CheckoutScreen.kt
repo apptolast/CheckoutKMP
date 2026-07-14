@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -26,6 +27,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +44,10 @@ import com.apptolast.checkoutkmp.presentation.CheckoutStatus
 import com.apptolast.checkoutkmp.presentation.MethodOption
 import com.apptolast.checkoutkmp.presentation.CheckoutViewModel
 import org.koin.androidx.compose.koinViewModel
+
+// Accessibility note: these screens are plain vertical Column/Row layouts, so the natural focus
+// and reading order already matches the visual order. We deliberately do NOT set traversalIndex —
+// it is only warranted when composition/draw order diverges from the desired focus order.
 
 @Composable
 fun CheckoutRoute(viewModel: CheckoutViewModel = koinViewModel()) {
@@ -93,7 +103,7 @@ fun CheckoutScreen(
                         onSubmit = { onIntent(CheckoutIntent.Submit(it)) },
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    StatusArea(status)
+                    StatusLine(status)
                 }
             }
         }
@@ -121,7 +131,11 @@ private fun ScenarioSelector(
     onSelect: (PspScenario) -> Unit,
 ) {
     Column {
-        Text("Test scenario (demo)", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Test scenario (demo)",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.semantics { heading() },
+        )
         Spacer(Modifier.height(8.dp))
         Row(
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -154,7 +168,11 @@ private fun MethodSelector(
     onSelect: (MethodOption) -> Unit,
 ) {
     Column {
-        Text("Payment method", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Payment method",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.semantics { heading() },
+        )
         Spacer(Modifier.height(8.dp))
         MethodOption.entries.forEach { option ->
             Row(
@@ -172,31 +190,37 @@ private fun MethodSelector(
     }
 }
 
+/**
+ * A single, always-present status line. Because it is a [LiveRegionMode] node that stays in the
+ * tree, TalkBack announces its text whenever it changes — Assertive for failures (interrupts),
+ * Polite for progress. Errors are conveyed by text, not colour alone.
+ */
 @Composable
-private fun StatusArea(status: CheckoutStatus) {
-    when (status) {
-        CheckoutStatus.Editing, is CheckoutStatus.Approved -> Unit
+private fun StatusLine(status: CheckoutStatus) {
+    val message = when (status) {
+        CheckoutStatus.Processing -> "Processing payment…"
+        is CheckoutStatus.Failed -> errorMessage(status.error)
+        else -> ""
+    }
+    val assertive = status is CheckoutStatus.Failed
 
-        CheckoutStatus.Processing -> Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(0.dp))
-            Text("  Processing payment…", style = MaterialTheme.typography.bodyMedium)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (status is CheckoutStatus.Processing) {
+            CircularProgressIndicator(modifier = Modifier.size(20.dp))
         }
-
-        is CheckoutStatus.RequiresSca -> Text(
-            "Additional authentication required (3D Secure) — coming in the next phase.",
+        Text(
+            text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-
-        is CheckoutStatus.Failed -> Text(
-            errorMessage(status.error),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
+            color = if (assertive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .weight(1f)
+                .semantics {
+                    liveRegion = if (assertive) LiveRegionMode.Assertive else LiveRegionMode.Polite
+                },
         )
     }
 }
@@ -208,9 +232,24 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Payment approved", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Payment approved",
+            style = MaterialTheme.typography.headlineSmall,
+            // Announce success on arrival and expose it as a heading for navigation.
+            modifier = Modifier.semantics {
+                heading()
+                liveRegion = LiveRegionMode.Polite
+            },
+        )
         Text(receipt.amount.formatWithCurrency(), style = MaterialTheme.typography.headlineMedium)
-        Text("${receipt.brand.displayName} · ${receipt.maskedCard}", textAlign = TextAlign.Center)
+        Text(
+            "${receipt.brand.displayName} · ${receipt.maskedCard}",
+            textAlign = TextAlign.Center,
+            // Read the masked card cleanly instead of "dot dot dot dot 4242".
+            modifier = Modifier.semantics {
+                contentDescription = "${receipt.brand.displayName}, card ending in ${receipt.maskedCard.takeLast(4)}"
+            },
+        )
         Text("Auth code: ${receipt.authCode}", style = MaterialTheme.typography.bodySmall)
         Text("Payment id: ${receipt.paymentId}", style = MaterialTheme.typography.bodySmall)
         OutlinedButton(onClick = onDone, modifier = Modifier.padding(top = 8.dp)) {
