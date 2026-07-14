@@ -69,35 +69,62 @@ En Android Studio: usa las run configurations del widget de ejecución.
 
 ## Roadmap por fases
 
-Cada fase vive en su propia rama (`feat/phase-N-*`) y se mergea a `main` tras pasar los tests.
-`main` siempre compila y pasa tests.
+Cada fase vive en su propia rama (`feat/phase-N-*`) y se mergea a `main` (fast-forward, historia
+lineal) tras pasar los tests. `main` siempre compila y pasa tests. **Todas las fases completadas.**
 
-1. **Dominio** — modelos (`Amount`, `Currency`, `PaymentMethod`, `CardToken`, `IdempotencyKey`,
-   `PaymentRequest`, `Receipt`, `PaymentError`), `PaymentState`, `ProcessPaymentUseCase` + `completeSca`,
+1. ✅ **Dominio** — modelos (`Amount`, `Currency`, `PaymentMethod`, `CardToken`, `IdempotencyKey`,
+   `PaymentRequest`, `Receipt`, `PaymentError`), `PaymentState`, `ProcessPaymentUseCase` + `CompleteScaUseCase`,
    Luhn, caducidad con kotlinx-datetime.
-2. **Tests de dominio** — Turbine: Approved / NeedsSca / Declined / Error, Luhn, transiciones de estado.
-3. **Data** — `PaymentRepository`, `FakePsp` configurable (approved/needsSca/declined/network) con
-   latencia e idempotencia por `IdempotencyKey`; `CardTokenizer` PCI-safe. Tests de idempotencia y enmascarado.
-4. **UI Android** — Compose + MVI: selección de método de pago y formulario de tarjeta con
+2. ✅ **Tests de dominio** — Turbine: Approved / NeedsSca / Declined / Error, Luhn, transiciones de estado.
+3. ✅ **Data** — `PaymentRepository`, `FakePsp` configurable con latencia e idempotencia por
+   `IdempotencyKey`; `CardTokenizer` PCI-safe. Tests de idempotencia y enmascarado.
+4. ✅ **UI Android** — Compose + MVI: selección de método de pago y formulario de tarjeta con
    validación en vivo (Luhn, formateo, enmascarado).
-5. **3D Secure** — pantalla de challenge, OTP simulado, `completeSca`; éxito, `ScaFailed`, cancelación.
-6. **Accesibilidad** — `traversalIndex`, `liveRegion`, `contentDescription` en marcas de tarjeta,
-   `key(...)` para evitar anuncios indebidos.
-7. **Errores y resiliencia** — taxonomía completa de `PaymentError`, mapper PSP→PaymentError en el borde,
-   `retryTransient` con backoff que solo reintenta transitorios reutilizando la misma `IdempotencyKey`.
-8. **Pulido** — diagrama de la máquina de estados, sección "¿Qué demuestra?", verificación anti-PAN.
+5. ✅ **3D Secure** — pantalla de challenge, OTP simulado, `completeSca`; éxito, `ScaFailed`, cancelación,
+   con selector de escenario del PSP en la propia pantalla (demo).
+6. ✅ **Accesibilidad** — `liveRegion` (anuncios de estado/errores), `contentDescription` limpio en la
+   tarjeta enmascarada, `key(...)` para evitar reanuncios, headings. Sin `traversalIndex`: los layouts son
+   lineales y el orden natural ya es correcto.
+7. ✅ **Errores y resiliencia** — taxonomía completa de `PaymentError`, mapper PSP→`PaymentError` en el borde,
+   `RetryingPaymentRepository` con backoff que solo reintenta transitorios reutilizando la misma
+   `IdempotencyKey`; pantalla de fallo accesible con reintento.
+8. ✅ **Pulido** — diagrama de la máquina de estados, sección "¿Qué demuestra?", verificación anti-PAN
+   (test automatizado + auditoría), `.gitattributes`.
 
-## Qué demuestra (orientado a pagos)
+## Máquina de estados del pago
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Processing: submit (tokeniza + autoriza)
+    Processing --> Approved: autorizado
+    Processing --> RequiresSca: 3D Secure requerido
+    Processing --> Failed: Declined / InvalidCard / transitorio*
+    RequiresSca --> Processing: enviar OTP
+    RequiresSca --> Failed: cancelar (Cancelled) / ScaFailed
+    Failed --> Processing: reintentar (solo transitorios, misma IdempotencyKey)
+    Failed --> Idle: empezar de nuevo
+    Approved --> [*]
+```
+
+\* Los errores **transitorios** (`Network` / `Timeout` / `RateLimited`) se reintentan automáticamente
+con backoff exponencial en la capa data **antes** de aflorar como `Failed`; el reintento manual reejecuta
+con la **misma** `IdempotencyKey`.
+
+## ¿Qué demuestra este proyecto?
 
 - **Seguridad PCI-consciente (regla de oro):** el **PAN nunca se loguea, ni se persiste, ni aparece
-  en el estado**. Solo circula el **token** y una versión **enmascarada** (p. ej. `•••• 4242`).
+  en el estado**. Solo circula el **token** y una versión **enmascarada** (p. ej. `•••• 4242`). Verificado
+  con un test automatizado (`GoldenRuleTest` / `GoldenRuleStateTest`) y sin ningún logging en el código.
 - **Idempotencia:** cada intento de pago lleva una `IdempotencyKey`; reintentar no cobra dos veces.
-- **Reintentos seguros:** solo se reintentan errores **transitorios** (red/timeout), nunca `Declined`
-  ni `InvalidCard`, y siempre con la **misma** `IdempotencyKey`.
+- **Reintentos seguros:** solo se reintentan errores **transitorios** (red/timeout/rate-limit), nunca
+  `Declined` ni `InvalidCard`, y siempre con la **misma** `IdempotencyKey`.
 - **3D Secure / SCA:** máquina de estados que modela el challenge y su resolución (éxito/fallo/cancelación).
 - **Validación de tarjeta:** algoritmo de **Luhn** y control de caducidad, testeados en `commonTest`.
 - **Lógica compartida y testeada:** casos de uso puros, independientes de Android, verificables con Turbine.
-- **Accesibilidad de verdad:** orden de foco, anuncios de errores/resultado y descripciones de contenido.
+  **~70 tests** entre `commonTest` (dominio + data) y los tests JVM de la app (ViewModel + DI).
+- **Accesibilidad de verdad:** anuncios de errores/resultado (`liveRegion`), descripciones de contenido
+  y navegación por headings.
 
 ---
 
