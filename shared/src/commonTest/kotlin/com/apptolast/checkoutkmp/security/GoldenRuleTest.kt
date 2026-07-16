@@ -72,9 +72,14 @@ class GoldenRuleTest {
         states.forEach { assertNoPan(it.toString()) }
     }
 
+    // Opaque tokens and idempotency keys are hyphenated UUIDs; their random hex can hold digit runs
+    // that are not card data. Strip them before the heuristic so it only flags a genuine PAN.
+    private val uuid = Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+
     private fun assertNoPan(text: String) {
         assertFalse(text.contains(pan), "PAN leaked in: $text")
-        // Also guard against any long digit run that could be a card number.
-        assertFalse(Regex("\\d{12,}").containsMatchIn(text), "Long digit run (possible PAN) in: $text")
+        // Also guard against any long digit run that could be a card number (UUIDs scrubbed first).
+        val scrubbed = uuid.replace(text, "<uuid>")
+        assertFalse(Regex("\\d{12,}").containsMatchIn(scrubbed), "Long digit run (possible PAN) in: $text")
     }
 }

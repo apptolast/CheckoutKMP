@@ -8,9 +8,9 @@ import com.apptolast.checkoutkmp.domain.tokenizer.CardTokenizer
 import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
 import com.apptolast.checkoutkmp.domain.tokenizer.TokenizationResult
 import com.apptolast.checkoutkmp.domain.usecase.Luhn
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 /**
@@ -35,7 +35,7 @@ class FakeCardTokenizer(
         if (!Luhn.isValid(pan)) {
             return failure("luhn_failed")
         }
-        if (card.expiry.isExpired(clock.todayIn(timeZone))) {
+        if (card.expiry.isExpired(clock.now().toLocalDateTime(timeZone).date)) {
             return failure("expired")
         }
         if (card.cvv.length !in CardRules.CVV_LENGTHS || card.cvv.any { !it.isDigit() }) {

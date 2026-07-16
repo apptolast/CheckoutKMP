@@ -11,7 +11,7 @@ import com.apptolast.checkoutkmp.domain.model.Receipt
 import com.apptolast.checkoutkmp.domain.model.ScaChallenge
 import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
 import kotlinx.coroutines.CancellationException
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * [PaymentRepository] backed by a [Psp]. This is the **boundary**: raw PSP responses and

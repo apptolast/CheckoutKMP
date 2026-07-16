@@ -1,9 +1,9 @@
 package com.apptolast.checkoutkmp.domain.model
 
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Card expiry as month + 4-digit year. A card is valid **through the last day of its
@@ -20,13 +20,13 @@ data class CardExpiry(
 
     /** Pure, testable check against a reference date. */
     fun isExpired(today: LocalDate): Boolean =
-        today.year > year || (today.year == year && today.monthNumber > month)
+        today.year > year || (today.year == year && today.month.ordinal + 1 > month)
 
     /** Convenience overload using the system clock. */
     fun isExpiredNow(
         clock: Clock = Clock.System,
         timeZone: TimeZone = TimeZone.currentSystemDefault(),
-    ): Boolean = isExpired(clock.todayIn(timeZone))
+    ): Boolean = isExpired(clock.now().toLocalDateTime(timeZone).date)
 
     /** `MM/YY`, e.g. `04/26`. */
     fun format(): String =

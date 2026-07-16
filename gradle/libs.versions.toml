@@ -16,7 +16,7 @@ material3 = "1.11.0-alpha07"
 
 # CheckoutKMP shared-logic stack
 coroutines = "1.10.2"
-kotlinxDatetime = "0.6.2"
+kotlinxDatetime = "0.7.1"
 koin = "4.0.4"
 turbine = "1.2.0"
 

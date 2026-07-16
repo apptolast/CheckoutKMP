@@ -10,7 +10,7 @@ import com.apptolast.checkoutkmp.domain.model.PaymentMethod
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
 import com.apptolast.checkoutkmp.domain.model.Receipt
 import com.apptolast.checkoutkmp.domain.model.ScaChallenge
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /** Reusable, valid domain objects for tests. */
 object Fixtures {

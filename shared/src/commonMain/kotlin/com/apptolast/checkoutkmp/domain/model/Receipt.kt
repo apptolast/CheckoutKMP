@@ -1,6 +1,6 @@
 package com.apptolast.checkoutkmp.domain.model
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /**
  * Proof of a successful (authorized) payment. PCI-safe: it carries only the [maskedCard] and

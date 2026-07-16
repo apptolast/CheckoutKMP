@@ -1,7 +1,7 @@
 package com.apptolast.checkoutkmp.support
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /** A [Clock] frozen at [instant], for deterministic time-dependent tests. */
 class FixedClock(private val instant: Instant) : Clock {
