@@ -78,10 +78,11 @@ fun CheckoutScreen(
     state: CheckoutState,
     onIntent: (CheckoutIntent) -> Unit,
 ) {
+    val strings = LocalStrings.current
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(tr("Checkout", "Pago")) },
+                title = { Text(strings.checkout) },
                 navigationIcon = {
                     // Decorative lock reinforcing the "secure checkout" framing.
                     Icon(
@@ -156,6 +157,7 @@ fun CheckoutScreen(
  */
 @Composable
 private fun BrandHeader(state: CheckoutState) {
+    val strings = LocalStrings.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -171,7 +173,7 @@ private fun BrandHeader(state: CheckoutState) {
         )
         Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacingSmall)) {
             Text(
-                tr("Order total", "Total del pedido"),
+                strings.orderTotal,
                 style = MaterialTheme.typography.labelLarge,
                 color = Color.White.copy(alpha = ON_GRADIENT_MUTED_ALPHA),
             )
@@ -191,7 +193,7 @@ private fun BrandHeader(state: CheckoutState) {
                     modifier = Modifier.size(Dimens.iconSmall),
                 )
                 Text(
-                    tr("Secure payment · demo", "Pago seguro · demo"),
+                    strings.securePaymentDemo,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = ON_GRADIENT_MUTED_ALPHA),
                 )
@@ -207,8 +209,9 @@ private fun ScenarioSelector(
     enabled: Boolean,
     onSelect: (PaymentScenario) -> Unit,
 ) {
+    val strings = LocalStrings.current
     Column {
-        SectionHeading(CheckoutIcons.Bolt, tr("Test scenario (demo)", "Escenario de prueba (demo)"))
+        SectionHeading(CheckoutIcons.Bolt, strings.testScenarioDemo)
         Spacer(Modifier.height(Dimens.spacingSmall))
         Row(
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -244,8 +247,9 @@ private fun MethodSelector(
     enabled: Boolean,
     onSelect: (MethodOption) -> Unit,
 ) {
+    val strings = LocalStrings.current
     Column {
-        SectionHeading(CheckoutIcons.CreditCard, tr("Payment method", "Método de pago"))
+        SectionHeading(CheckoutIcons.CreditCard, strings.paymentMethod)
         Spacer(Modifier.height(Dimens.spacingSmall))
         MethodOption.entries.forEach { option ->
             Row(
@@ -289,18 +293,21 @@ private fun SectionHeading(icon: androidx.compose.ui.graphics.vector.ImageVector
 }
 
 @Composable
-private fun scenarioLabel(scenario: PaymentScenario): String = when (scenario) {
-    PaymentScenario.APPROVED -> tr("Approved", "Aprobado")
-    PaymentScenario.NEEDS_SCA -> "3D Secure"
-    PaymentScenario.DECLINED -> tr("Declined", "Rechazado")
-    PaymentScenario.NETWORK_ERROR -> tr("Network error", "Error de red")
-    PaymentScenario.TIMEOUT -> tr("Timeout", "Tiempo agotado")
-    PaymentScenario.RATE_LIMITED -> tr("Rate limited", "Límite de peticiones")
+private fun scenarioLabel(scenario: PaymentScenario): String {
+    val strings = LocalStrings.current
+    return when (scenario) {
+        PaymentScenario.APPROVED -> strings.scenarioApproved
+        PaymentScenario.NEEDS_SCA -> strings.scenario3dSecure
+        PaymentScenario.DECLINED -> strings.scenarioDeclined
+        PaymentScenario.NETWORK_ERROR -> strings.scenarioNetworkError
+        PaymentScenario.TIMEOUT -> strings.scenarioTimeout
+        PaymentScenario.RATE_LIMITED -> strings.scenarioRateLimited
+    }
 }
 
 @Composable
 private fun methodLabel(option: MethodOption): String = when (option) {
-    MethodOption.CARD -> tr("Credit / debit card", "Tarjeta de crédito / débito")
+    MethodOption.CARD -> LocalStrings.current.creditDebitCard
 }
 
 /**
@@ -311,7 +318,7 @@ private fun methodLabel(option: MethodOption): String = when (option) {
 @Composable
 private fun StatusLine(status: CheckoutStatus) {
     val isProcessing = status is CheckoutStatus.Processing
-    val message = if (isProcessing) tr("Processing payment…", "Procesando pago…") else ""
+    val message = if (isProcessing) LocalStrings.current.processingPayment else ""
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -369,6 +376,7 @@ private fun FailureView(
     onRetry: () -> Unit,
     onStartOver: () -> Unit,
 ) {
+    val strings = LocalStrings.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -381,7 +389,7 @@ private fun FailureView(
             contentColor = MaterialTheme.colorScheme.onErrorContainer,
         )
         Text(
-            tr("Payment failed", "Pago fallido"),
+            strings.paymentFailed,
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.semantics {
@@ -400,17 +408,18 @@ private fun FailureView(
             Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
                 Icon(CheckoutIcons.Refresh, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
                 Spacer(Modifier.width(Dimens.spacingSmall))
-                Text(tr("Retry", "Reintentar"))
+                Text(strings.retry)
             }
         }
         OutlinedButton(onClick = onStartOver, modifier = Modifier.fillMaxWidth()) {
-            Text(tr("Start over", "Empezar de nuevo"))
+            Text(strings.startOver)
         }
     }
 }
 
 @Composable
 private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
+    val strings = LocalStrings.current
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -423,7 +432,7 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
             contentColor = extraColors.success,
         )
         Text(
-            tr("Payment approved", "Pago aprobado"),
+            strings.paymentApproved,
             style = MaterialTheme.typography.headlineSmall,
             // Announce success on arrival and expose it as a heading for navigation.
             modifier = Modifier.semantics {
@@ -439,7 +448,7 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
         Spacer(Modifier.height(Dimens.spacingSmall))
         ReceiptDetails(receipt)
         OutlinedButton(onClick = onDone, modifier = Modifier.padding(top = Dimens.spacingSmall)) {
-            Text(tr("New payment", "Nuevo pago"))
+            Text(strings.newPayment)
         }
     }
 }
@@ -452,25 +461,25 @@ private fun ReceiptDetails(receipt: Receipt) {
             modifier = Modifier.fillMaxWidth().padding(Dimens.spacingLarge),
             verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium),
         ) {
+            val strings = LocalStrings.current
             val brand = brandLabel(receipt.brand)
             val last4 = receipt.maskedCard.takeLast(CardRules.LAST4_LENGTH)
-            val maskedCardDescription =
-                tr("$brand, card ending in $last4", "$brand, tarjeta terminada en $last4")
+            val maskedCardDescription = strings.cardEndingIn(brand, last4)
             ReceiptRow(
                 icon = CheckoutIcons.CreditCard,
-                label = tr("Card", "Tarjeta"),
+                label = strings.card,
                 value = "$brand · ${receipt.maskedCard}",
                 // Read the masked card cleanly instead of "dot dot dot dot 4242".
                 valueDescription = maskedCardDescription,
             )
             ReceiptRow(
                 icon = CheckoutIcons.CheckCircle,
-                label = tr("Auth code", "Código de autorización"),
+                label = strings.authCode,
                 value = receipt.authCode,
             )
             ReceiptRow(
                 icon = CheckoutIcons.Receipt,
-                label = tr("Payment id", "ID de pago"),
+                label = strings.paymentId,
                 value = receipt.paymentId,
             )
         }
@@ -514,21 +523,16 @@ private fun ReceiptRow(
 /** Maps a domain [PaymentError] to its localized, user-facing message. The technical `reason`
  *  carried by some errors is intentionally NOT shown — it's a diagnostic code, not localized copy. */
 @Composable
-private fun errorMessage(error: PaymentError): String = when (error) {
-    is PaymentError.Declined ->
-        tr("Your card was declined. Please try another card.", "Tu tarjeta fue rechazada. Prueba con otra tarjeta.")
-    is PaymentError.InvalidCard ->
-        tr("Card details are invalid. Please check and try again.", "Los datos de la tarjeta no son válidos. Revísalos e inténtalo de nuevo.")
-    PaymentError.Network ->
-        tr("Network problem. Please try again.", "Problema de red. Inténtalo de nuevo.")
-    PaymentError.Timeout ->
-        tr("The request timed out. Please try again.", "La solicitud tardó demasiado. Inténtalo de nuevo.")
-    PaymentError.RateLimited ->
-        tr("Too many attempts. Please wait a moment.", "Demasiados intentos. Espera un momento.")
-    is PaymentError.ScaFailed ->
-        tr("Authentication failed. Please try again.", "La autenticación falló. Inténtalo de nuevo.")
-    PaymentError.Cancelled ->
-        tr("Payment cancelled.", "Pago cancelado.")
-    is PaymentError.Unknown ->
-        tr("Something went wrong. Please try again.", "Algo salió mal. Inténtalo de nuevo.")
+private fun errorMessage(error: PaymentError): String {
+    val strings = LocalStrings.current
+    return when (error) {
+        is PaymentError.Declined -> strings.errorDeclined
+        is PaymentError.InvalidCard -> strings.errorInvalidCard
+        PaymentError.Network -> strings.errorNetwork
+        PaymentError.Timeout -> strings.errorTimeout
+        PaymentError.RateLimited -> strings.errorRateLimited
+        is PaymentError.ScaFailed -> strings.errorScaFailed
+        PaymentError.Cancelled -> strings.errorCancelled
+        is PaymentError.Unknown -> strings.errorUnknown
+    }
 }

@@ -42,6 +42,7 @@ fun CardForm(
     onSubmit: (RawCard) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalStrings.current
     var pan by remember { mutableStateOf("") }        // raw digits, sensitive — UI-only
     var expiry by remember { mutableStateOf("") }     // raw MMYY digits
     var cvv by remember { mutableStateOf("") }        // sensitive — UI-only
@@ -57,7 +58,7 @@ fun CardForm(
         OutlinedTextField(
             value = pan,
             onValueChange = { pan = digitsOnly(it, max = CardRules.PAN_LENGTHS.last) },
-            label = { Text(tr("Card number", "Número de tarjeta")) },
+            label = { Text(strings.cardNumber) },
             leadingIcon = { FieldIcon(CheckoutIcons.CreditCard) },
             supportingText = { CardBrandSupportingText(brand, pan) },
             isError = pan.isNotEmpty() && !panValid,
@@ -72,7 +73,7 @@ fun CardForm(
             OutlinedTextField(
                 value = expiry,
                 onValueChange = { expiry = digitsOnly(it, max = CardRules.EXPIRY_TOTAL_DIGITS) },
-                label = { Text(tr("MM/YY", "MM/AA")) },
+                label = { Text(strings.expiryMmYy) },
                 leadingIcon = { FieldIcon(CheckoutIcons.CalendarMonth) },
                 isError = expiry.isNotEmpty() && !expiryValid,
                 singleLine = true,
@@ -84,7 +85,7 @@ fun CardForm(
             OutlinedTextField(
                 value = cvv,
                 onValueChange = { cvv = digitsOnly(it, max = CardRules.CVV_LENGTHS.last) },
-                label = { Text(tr("CVV", "CVV")) },
+                label = { Text(strings.cvv) },
                 leadingIcon = { FieldIcon(CheckoutIcons.Lock) },
                 isError = cvv.isNotEmpty() && !cvvValid,
                 singleLine = true,
@@ -104,7 +105,7 @@ fun CardForm(
         ) {
             Icon(CheckoutIcons.Lock, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
             Spacer(Modifier.width(Dimens.spacingSmall))
-            Text(tr("Pay $payAmount", "Pagar $payAmount"))
+            Text(strings.pay(payAmount))
         }
     }
 }
@@ -127,15 +128,12 @@ private fun FieldIcon(icon: androidx.compose.ui.graphics.vector.ImageVector) {
  */
 @Composable
 private fun CardBrandSupportingText(brand: CardBrand, pan: String) {
+    val strings = LocalStrings.current
     val hasLast4 = pan.length >= CardRules.LAST4_LENGTH
     val last4 = pan.takeLast(CardRules.LAST4_LENGTH)
     val label = brandLabel(brand)
     val visual = if (hasLast4) "$label · •••• $last4" else label
-    val spoken = if (hasLast4) {
-        tr("$label, card ending in $last4", "$label, tarjeta terminada en $last4")
-    } else {
-        tr("$label card", "Tarjeta $label")
-    }
+    val spoken = if (hasLast4) strings.cardEndingIn(label, last4) else strings.brandCard(label)
     key(visual) {
         Text(visual, modifier = Modifier.semantics { contentDescription = spoken })
     }

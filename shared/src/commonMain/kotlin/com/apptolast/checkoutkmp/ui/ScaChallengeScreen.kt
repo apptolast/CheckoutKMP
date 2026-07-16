@@ -44,8 +44,9 @@ fun ScaChallengeScreen(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalStrings.current
     var otp by remember { mutableStateOf("") }
-    val deliveryTarget = challenge.deliveryHint ?: tr("your device", "tu dispositivo")
+    val deliveryTarget = challenge.deliveryHint ?: strings.yourDevice
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
         Row(
@@ -63,19 +64,16 @@ fun ScaChallengeScreen(
                 modifier = Modifier.size(Dimens.iconMedium),
             )
             Text(
-                tr("3D Secure verification", "Verificación 3D Secure"),
+                strings.threeDSecureVerification,
                 style = MaterialTheme.typography.headlineSmall,
             )
         }
         Text(
-            tr(
-                "Enter the ${challenge.otpLength}-digit code sent to $deliveryTarget.",
-                "Introduce el código de ${challenge.otpLength} dígitos enviado a $deliveryTarget.",
-            ),
+            strings.enterCodeSentTo(challenge.otpLength, deliveryTarget),
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
-            tr("Demo code: ${DemoDefaults.SCA_OTP}", "Código demo: ${DemoDefaults.SCA_OTP}"),
+            "${strings.demoCode}: ${DemoDefaults.SCA_OTP}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.outline,
         )
@@ -83,7 +81,7 @@ fun ScaChallengeScreen(
         OutlinedTextField(
             value = otp,
             onValueChange = { otp = digitsOnly(it, max = challenge.otpLength) },
-            label = { Text(tr("Verification code", "Código de verificación")) },
+            label = { Text(strings.verificationCode) },
             leadingIcon = {
                 Icon(
                     CheckoutIcons.Lock,
@@ -97,7 +95,7 @@ fun ScaChallengeScreen(
                 if (otpError) {
                     // Announce a wrong-code error assertively so it interrupts and is not missed.
                     Text(
-                        tr("Incorrect code, try again.", "Código incorrecto, inténtalo de nuevo."),
+                        strings.incorrectCode,
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
                     )
                 }
@@ -119,14 +117,14 @@ fun ScaChallengeScreen(
         ) {
             Icon(CheckoutIcons.VerifiedUser, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
             Spacer(Modifier.width(Dimens.spacingSmall))
-            Text(tr("Verify", "Verificar"))
+            Text(strings.verify)
         }
         OutlinedButton(
             onClick = onCancel,
             enabled = !isVerifying,
             modifier = Modifier.fillMaxWidth().padding(top = Dimens.spacingTiny),
         ) {
-            Text(tr("Cancel", "Cancelar"))
+            Text(strings.cancel)
         }
     }
 }

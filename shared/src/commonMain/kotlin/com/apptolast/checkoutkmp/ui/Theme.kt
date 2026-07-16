@@ -118,7 +118,10 @@ fun CheckoutTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(LocalExtraColors provides if (darkTheme) DarkExtraColors else LightExtraColors) {
+    CompositionLocalProvider(
+        LocalExtraColors provides if (darkTheme) DarkExtraColors else LightExtraColors,
+        LocalStrings provides stringsFor(deviceLanguageCode()),
+    ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColors else LightColors,
             content = content,

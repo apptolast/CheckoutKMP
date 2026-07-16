@@ -9,4 +9,4 @@ import com.apptolast.checkoutkmp.domain.model.CardBrand
  */
 @Composable
 fun brandLabel(brand: CardBrand): String =
-    if (brand == CardBrand.UNKNOWN) tr("Card", "Tarjeta") else brand.displayName
+    if (brand == CardBrand.UNKNOWN) LocalStrings.current.card else brand.displayName
