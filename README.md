@@ -22,7 +22,8 @@ Clean Architecture con la lógica de negocio 100 % en Kotlin común (sin Android
 │  :shared / commonMain                                      │
 │                                                            │
 │   ui/           Compose Multiplatform: App, CheckoutScreen,│
-│                 formulario, 3DS, recibo (i18n EN/ES en Kotlin)│
+│                 formulario, 3DS, recibo; tema de marca +   │
+│                 set de iconos propio; i18n EN/ES en Kotlin │
 │   presentation/ MVI: CheckoutState, intents, ViewModel     │
 │   domain/       Modelos, PaymentState, casos de uso, Luhn, │
 │                 y los CONTRATOS (PaymentRepository,         │
@@ -54,7 +55,7 @@ Clean Architecture con la lógica de negocio 100 % en Kotlin común (sin Android
 ### Stack
 
 - Kotlin Multiplatform (Kotlin 2.4, AGP 9) · **Compose Multiplatform** (UI compartida) · Gradle version catalogs
-- kotlinx-coroutines · kotlinx-datetime · Koin
+- kotlinx-coroutines · kotlinx-datetime 0.7.1 (API `kotlin.time`) · Koin
 - `kotlin.uuid.Uuid` (stdlib) para `IdempotencyKey`
 - Tests: kotlin-test · kotlinx-coroutines-test · **Turbine**
 
@@ -101,6 +102,11 @@ lineal) tras pasar los tests. `main` siempre compila y pasa tests. **Todas las f
 8. ✅ **Pulido** — diagrama de la máquina de estados, sección "¿Qué demuestra?", verificación anti-PAN
    (test automatizado + auditoría), `.gitattributes`.
 
+**Mejoras posteriores a las fases** (misma disciplina de rama + `--ff-only`): migración de fechas a
+`kotlin.time` (kotlinx-datetime 0.7.1) eliminando deprecaciones; centralización de constantes y
+duplicaciones (`CardRules`, `DemoDefaults`, `ScaChallenge`); y **rediseño de UI de marca** (tema
+Material3 claro/oscuro + set de iconos propio) verificado en emulador en los cuatro estados.
+
 ## Máquina de estados del pago
 
 ```mermaid
@@ -137,10 +143,17 @@ con la **misma** `IdempotencyKey`.
   y navegación por headings.
 - **UI compartida (Compose Multiplatform):** una sola UI Compose (`commonMain/ui`) para Android e iOS;
   los hosts solo montan `App()` y arrancan Koin.
+- **Sistema de diseño de marca:** tema Material3 propio (claro y oscuro) con la paleta extraída del
+  icono de la app (degradado violeta→azul→teal) en `Theme.kt` — sin *dynamic color*, para que UI e
+  icono se lean como un solo producto — más un **set de iconos vectoriales propio** (`CheckoutIcons`,
+  `ImageVector` en `commonMain`) que se renderiza idéntico en Android/iOS sin la dependencia
+  `material-icons-extended` (deprecada en Compose MP).
 - **Internacionalización:** UI localizada **EN/ES** vía `tr(en, es)` en Kotlin (los Compose resources no
   los empaqueta el plugin KMP-library de AGP 9); los mensajes de error nunca filtran códigos técnicos.
-- **Higiene de código:** sin números mágicos (reglas de tarjeta centralizadas en `CardRules`, dimensiones
-  en `Dimens`), sin APIs deprecadas y con la regla de dependencia de Clean Architecture respetada.
+- **Higiene de código:** sin números mágicos (reglas de tarjeta en `CardRules`, dimensiones/tokens de
+  UI en `Dimens`, credenciales de demo en `DemoDefaults`), sin duplicación hardcodeada, **sin APIs
+  deprecadas** (fechas migradas a `kotlin.time` con kotlinx-datetime 0.7.1) y con la regla de
+  dependencia de Clean Architecture respetada.
 
 ---
 
