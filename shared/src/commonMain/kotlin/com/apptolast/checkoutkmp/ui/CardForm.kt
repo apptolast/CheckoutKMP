@@ -3,10 +3,14 @@ package com.apptolast.checkoutkmp.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +38,7 @@ import com.apptolast.checkoutkmp.domain.usecase.Luhn
 @Composable
 fun CardForm(
     enabled: Boolean,
+    payAmount: String,
     onSubmit: (RawCard) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -53,6 +58,7 @@ fun CardForm(
             value = pan,
             onValueChange = { pan = digitsOnly(it, max = CardRules.PAN_LENGTHS.last) },
             label = { Text(tr("Card number", "Número de tarjeta")) },
+            leadingIcon = { FieldIcon(CheckoutIcons.CreditCard) },
             supportingText = { CardBrandSupportingText(brand, pan) },
             isError = pan.isNotEmpty() && !panValid,
             singleLine = true,
@@ -67,6 +73,7 @@ fun CardForm(
                 value = expiry,
                 onValueChange = { expiry = digitsOnly(it, max = CardRules.EXPIRY_TOTAL_DIGITS) },
                 label = { Text(tr("MM/YY", "MM/AA")) },
+                leadingIcon = { FieldIcon(CheckoutIcons.CalendarMonth) },
                 isError = expiry.isNotEmpty() && !expiryValid,
                 singleLine = true,
                 enabled = enabled,
@@ -78,6 +85,7 @@ fun CardForm(
                 value = cvv,
                 onValueChange = { cvv = digitsOnly(it, max = CardRules.CVV_LENGTHS.last) },
                 label = { Text(tr("CVV", "CVV")) },
+                leadingIcon = { FieldIcon(CheckoutIcons.Lock) },
                 isError = cvv.isNotEmpty() && !cvvValid,
                 singleLine = true,
                 enabled = enabled,
@@ -94,9 +102,22 @@ fun CardForm(
             enabled = enabled && formValid,
             modifier = Modifier.fillMaxWidth().padding(top = Dimens.spacingXSmall),
         ) {
-            Text(tr("Pay", "Pagar"))
+            Icon(CheckoutIcons.Lock, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
+            Spacer(Modifier.width(Dimens.spacingSmall))
+            Text(tr("Pay $payAmount", "Pagar $payAmount"))
         }
     }
+}
+
+/** A muted leading icon shared by the card fields. */
+@Composable
+private fun FieldIcon(icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Icon(
+        icon,
+        contentDescription = null,
+        tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(Dimens.iconMedium),
+    )
 }
 
 /**

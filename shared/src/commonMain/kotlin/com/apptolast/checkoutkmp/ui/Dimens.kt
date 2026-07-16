@@ -26,6 +26,27 @@ object Dimens {
     /** Gap between top-level screen sections; horizontal screen padding. */
     val spacingXLarge = 20.dp
 
+    /** Generous gap around terminal (success/failure) screens. */
+    val spacingXXLarge = 32.dp
+
     /** Diameter of the inline "processing" progress indicator on the status line. */
     val inlineProgressSize = 20.dp
+
+    /** Small leading icon inside text fields, chips and buttons. */
+    val iconSmall = 18.dp
+
+    /** Standard icon (app bar, list rows). */
+    val iconMedium = 24.dp
+
+    /** Icon inside the large success/failure status badge. */
+    val statusIconSize = 44.dp
+
+    /** Tinted circle behind the terminal status icon. */
+    val statusBadgeSize = 88.dp
+
+    /** Corner radius for the branded summary header. */
+    val cornerLarge = 24.dp
+
+    /** Faint card motif watermarked into the branded header. */
+    val watermarkIconSize = 72.dp
 }

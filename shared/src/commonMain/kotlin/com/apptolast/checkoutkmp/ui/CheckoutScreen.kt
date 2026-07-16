@@ -1,6 +1,8 @@
 package com.apptolast.checkoutkmp.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,26 +11,36 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -45,6 +57,10 @@ import com.apptolast.checkoutkmp.presentation.CheckoutStatus
 import com.apptolast.checkoutkmp.presentation.MethodOption
 import com.apptolast.checkoutkmp.presentation.CheckoutViewModel
 import org.koin.compose.viewmodel.koinViewModel
+
+// Alpha applied to white content laid over the brand gradient header.
+private const val ON_GRADIENT_WATERMARK_ALPHA = 0.16f
+private const val ON_GRADIENT_MUTED_ALPHA = 0.85f
 
 // Accessibility note: these screens are plain vertical Column/Row layouts, so the natural focus
 // and reading order already matches the visual order. We deliberately do NOT set traversalIndex —
@@ -63,7 +79,23 @@ fun CheckoutScreen(
     onIntent: (CheckoutIntent) -> Unit,
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text(tr("Checkout", "Pago")) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(tr("Checkout", "Pago")) },
+                navigationIcon = {
+                    // Decorative lock reinforcing the "secure checkout" framing.
+                    Icon(
+                        CheckoutIcons.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.padding(horizontal = Dimens.spacingMedium).size(Dimens.iconMedium),
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    titleContentColor = MaterialTheme.colorScheme.primary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.primary,
+                ),
+            )
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -94,7 +126,7 @@ fun CheckoutScreen(
                 )
 
                 else -> {
-                    OrderSummary(state)
+                    BrandHeader(state)
                     ScenarioSelector(
                         selected = state.scenario,
                         enabled = !state.isProcessing,
@@ -107,6 +139,7 @@ fun CheckoutScreen(
                     )
                     CardForm(
                         enabled = !state.isProcessing,
+                        payAmount = state.amount.formatWithCurrency(),
                         onSubmit = { onIntent(CheckoutIntent.Submit(it)) },
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -117,18 +150,52 @@ fun CheckoutScreen(
     }
 }
 
+/**
+ * Branded order-total header. The diagonal gradient and the faint card motif are the same ones used
+ * in the launcher icon, so the screen and the app icon read as one product.
+ */
 @Composable
-private fun OrderSummary(state: CheckoutState) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(Dimens.spacingLarge),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacingXSmall),
-        ) {
-            Text(tr("Order total", "Total del pedido"), style = MaterialTheme.typography.labelMedium)
+private fun BrandHeader(state: CheckoutState) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(Dimens.cornerLarge))
+            .background(Brush.linearGradient(extraColors.brandGradient))
+            .padding(Dimens.spacingXLarge),
+    ) {
+        Icon(
+            CheckoutIcons.CreditCard,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = ON_GRADIENT_WATERMARK_ALPHA),
+            modifier = Modifier.size(Dimens.watermarkIconSize).align(Alignment.TopEnd),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacingSmall)) {
+            Text(
+                tr("Order total", "Total del pedido"),
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.White.copy(alpha = ON_GRADIENT_MUTED_ALPHA),
+            )
             Text(
                 state.amount.formatWithCurrency(),
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineLarge,
+                color = Color.White,
             )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingXSmall),
+            ) {
+                Icon(
+                    CheckoutIcons.Lock,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = ON_GRADIENT_MUTED_ALPHA),
+                    modifier = Modifier.size(Dimens.iconSmall),
+                )
+                Text(
+                    tr("Secure payment · demo", "Pago seguro · demo"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = ON_GRADIENT_MUTED_ALPHA),
+                )
+            }
         }
     }
 }
@@ -141,25 +208,83 @@ private fun ScenarioSelector(
     onSelect: (PaymentScenario) -> Unit,
 ) {
     Column {
-        Text(
-            tr("Test scenario (demo)", "Escenario de prueba (demo)"),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.semantics { heading() },
-        )
+        SectionHeading(CheckoutIcons.Bolt, tr("Test scenario (demo)", "Escenario de prueba (demo)"))
         Spacer(Modifier.height(Dimens.spacingSmall))
         Row(
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
         ) {
             PaymentScenario.entries.forEach { scenario ->
+                val isSelected = scenario == selected
                 FilterChip(
-                    selected = scenario == selected,
+                    selected = isSelected,
                     enabled = enabled,
                     onClick = { onSelect(scenario) },
                     label = { Text(scenarioLabel(scenario)) },
+                    leadingIcon = if (isSelected) {
+                        {
+                            Icon(
+                                CheckoutIcons.CheckCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(FilterChipDefaults.IconSize),
+                            )
+                        }
+                    } else {
+                        null
+                    },
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun MethodSelector(
+    selected: MethodOption,
+    enabled: Boolean,
+    onSelect: (MethodOption) -> Unit,
+) {
+    Column {
+        SectionHeading(CheckoutIcons.CreditCard, tr("Payment method", "Método de pago"))
+        Spacer(Modifier.height(Dimens.spacingSmall))
+        MethodOption.entries.forEach { option ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(selected = option == selected, enabled = enabled) { onSelect(option) }
+                    .padding(vertical = Dimens.spacingXSmall),
+            ) {
+                RadioButton(selected = option == selected, enabled = enabled, onClick = { onSelect(option) })
+                Icon(
+                    CheckoutIcons.CreditCard,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(Dimens.iconMedium),
+                )
+                Text(methodLabel(option), style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        HorizontalDivider(modifier = Modifier.padding(top = Dimens.spacingSmall))
+    }
+}
+
+/** A titled section heading with a leading brand-tinted icon. */
+@Composable
+private fun SectionHeading(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
+        modifier = Modifier.semantics(mergeDescendants = true) { heading() },
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(Dimens.iconSmall),
+        )
+        Text(text, style = MaterialTheme.typography.titleMedium)
     }
 }
 
@@ -171,35 +296,6 @@ private fun scenarioLabel(scenario: PaymentScenario): String = when (scenario) {
     PaymentScenario.NETWORK_ERROR -> tr("Network error", "Error de red")
     PaymentScenario.TIMEOUT -> tr("Timeout", "Tiempo agotado")
     PaymentScenario.RATE_LIMITED -> tr("Rate limited", "Límite de peticiones")
-}
-
-@Composable
-private fun MethodSelector(
-    selected: MethodOption,
-    enabled: Boolean,
-    onSelect: (MethodOption) -> Unit,
-) {
-    Column {
-        Text(
-            tr("Payment method", "Método de pago"),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.semantics { heading() },
-        )
-        Spacer(Modifier.height(Dimens.spacingSmall))
-        MethodOption.entries.forEach { option ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(selected = option == selected, enabled = enabled) { onSelect(option) }
-                    .padding(vertical = Dimens.spacingXSmall),
-            ) {
-                RadioButton(selected = option == selected, enabled = enabled, onClick = { onSelect(option) })
-                Text(methodLabel(option), style = MaterialTheme.typography.bodyLarge)
-            }
-        }
-        HorizontalDivider(modifier = Modifier.padding(top = Dimens.spacingSmall))
-    }
 }
 
 @Composable
@@ -237,6 +333,32 @@ private fun StatusLine(status: CheckoutStatus) {
 }
 
 /**
+ * A large tinted circle badge with a centered icon, used to headline the terminal success and
+ * failure screens.
+ */
+@Composable
+private fun StatusBadge(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(Dimens.statusBadgeSize)
+            .clip(CircleShape)
+            .background(containerColor),
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(Dimens.statusIconSize),
+        )
+    }
+}
+
+/**
  * Terminal failure screen with a per-type accessible message. Transient failures (already retried
  * under the hood) offer a manual "Retry" that reuses the same IdempotencyKey; non-transient ones
  * only offer starting over with a different card.
@@ -249,8 +371,15 @@ private fun FailureView(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium),
     ) {
+        Spacer(Modifier.height(Dimens.spacingLarge))
+        StatusBadge(
+            icon = CheckoutIcons.ErrorOutline,
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        )
         Text(
             tr("Payment failed", "Pago fallido"),
             style = MaterialTheme.typography.headlineSmall,
@@ -260,10 +389,17 @@ private fun FailureView(
                 liveRegion = LiveRegionMode.Assertive
             },
         )
-        Text(errorMessage(error), style = MaterialTheme.typography.bodyLarge)
+        Text(
+            errorMessage(error),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(Dimens.spacingSmall))
 
         if (error.isTransient) {
             Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+                Icon(CheckoutIcons.Refresh, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
+                Spacer(Modifier.width(Dimens.spacingSmall))
                 Text(tr("Retry", "Reintentar"))
             }
         }
@@ -280,6 +416,12 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium),
     ) {
+        Spacer(Modifier.height(Dimens.spacingLarge))
+        StatusBadge(
+            icon = CheckoutIcons.CheckCircle,
+            containerColor = extraColors.successContainer,
+            contentColor = extraColors.success,
+        )
         Text(
             tr("Payment approved", "Pago aprobado"),
             style = MaterialTheme.typography.headlineSmall,
@@ -289,26 +431,82 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
                 liveRegion = LiveRegionMode.Polite
             },
         )
-        Text(receipt.amount.formatWithCurrency(), style = MaterialTheme.typography.headlineMedium)
-        val brand = brandLabel(receipt.brand)
-        val last4 = receipt.maskedCard.takeLast(CardRules.LAST4_LENGTH)
-        // Read the masked card cleanly instead of "dot dot dot dot 4242".
-        val maskedCardDescription = tr("$brand, card ending in $last4", "$brand, tarjeta terminada en $last4")
         Text(
-            "$brand · ${receipt.maskedCard}",
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { contentDescription = maskedCardDescription },
+            receipt.amount.formatWithCurrency(),
+            style = MaterialTheme.typography.headlineMedium,
+            color = extraColors.success,
         )
-        Text(
-            tr("Auth code: ${receipt.authCode}", "Código de autorización: ${receipt.authCode}"),
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Text(
-            tr("Payment id: ${receipt.paymentId}", "ID de pago: ${receipt.paymentId}"),
-            style = MaterialTheme.typography.bodySmall,
-        )
+        Spacer(Modifier.height(Dimens.spacingSmall))
+        ReceiptDetails(receipt)
         OutlinedButton(onClick = onDone, modifier = Modifier.padding(top = Dimens.spacingSmall)) {
             Text(tr("New payment", "Nuevo pago"))
+        }
+    }
+}
+
+/** The itemised receipt card: masked card, auth code and payment id. */
+@Composable
+private fun ReceiptDetails(receipt: Receipt) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Dimens.spacingLarge),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium),
+        ) {
+            val brand = brandLabel(receipt.brand)
+            val last4 = receipt.maskedCard.takeLast(CardRules.LAST4_LENGTH)
+            val maskedCardDescription =
+                tr("$brand, card ending in $last4", "$brand, tarjeta terminada en $last4")
+            ReceiptRow(
+                icon = CheckoutIcons.CreditCard,
+                label = tr("Card", "Tarjeta"),
+                value = "$brand · ${receipt.maskedCard}",
+                // Read the masked card cleanly instead of "dot dot dot dot 4242".
+                valueDescription = maskedCardDescription,
+            )
+            ReceiptRow(
+                icon = CheckoutIcons.CheckCircle,
+                label = tr("Auth code", "Código de autorización"),
+                value = receipt.authCode,
+            )
+            ReceiptRow(
+                icon = CheckoutIcons.Receipt,
+                label = tr("Payment id", "ID de pago"),
+                value = receipt.paymentId,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReceiptRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    valueDescription: String? = null,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacingMedium),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(Dimens.iconMedium),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val valueModifier = if (valueDescription != null) {
+                Modifier.clearAndSetSemantics { contentDescription = valueDescription }
+            } else {
+                Modifier
+            }
+            Text(value, style = MaterialTheme.typography.bodyLarge, modifier = valueModifier)
         }
     }
 }
