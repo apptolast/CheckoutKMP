@@ -4,14 +4,15 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
+import com.apptolast.checkoutkmp.domain.model.CardRules
 
 // Digits per displayed card group ("4242 4242 4242 4242"); +1 accounts for the separator space.
 private const val CARD_GROUP_SIZE = 4
 private const val CARD_GROUP_STRIDE = CARD_GROUP_SIZE + 1
 
-// Expiry is entered as MMYY; the slash is inserted after the two month digits.
-private const val EXPIRY_MONTH_DIGITS = 2
-private const val EXPIRY_TOTAL_DIGITS = 4
+// Expiry is entered as MMYY (see CardRules); the slash is inserted after the two month digits.
+private const val EXPIRY_MONTH_DIGITS = CardRules.EXPIRY_MONTH_DIGITS
+private const val EXPIRY_TOTAL_DIGITS = CardRules.EXPIRY_TOTAL_DIGITS
 
 /** Keep only digits, capped at [max] characters. */
 fun digitsOnly(input: String, max: Int): String =

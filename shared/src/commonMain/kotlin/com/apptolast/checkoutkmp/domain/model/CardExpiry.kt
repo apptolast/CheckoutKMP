@@ -14,8 +14,8 @@ data class CardExpiry(
     val year: Int,
 ) {
     init {
-        require(month in 1..12) { "Invalid month: $month" }
-        require(year in 2000..2099) { "Invalid year: $year" }
+        require(month in CardRules.MONTH_RANGE) { "Invalid month: $month" }
+        require(year in YEAR_RANGE) { "Invalid year: $year" }
     }
 
     /** Pure, testable check against a reference date. */
@@ -30,20 +30,27 @@ data class CardExpiry(
 
     /** `MM/YY`, e.g. `04/26`. */
     fun format(): String =
-        month.toString().padStart(2, '0') + "/" + (year % 100).toString().padStart(2, '0')
+        month.toString().padStart(CardRules.EXPIRY_MONTH_DIGITS, '0') + "/" +
+            (year % YEARS_PER_CENTURY).toString().padStart(CardRules.EXPIRY_YEAR_DIGITS, '0')
 
     companion object {
+        /** Two-digit years are mapped into the 21st century (e.g. `26` → `2026`). */
+        private const val CENTURY_BASE = 2000
+        private const val YEARS_PER_CENTURY = 100
+        private val YEAR_RANGE = CENTURY_BASE..(CENTURY_BASE + YEARS_PER_CENTURY - 1)
+
         /**
          * Parse a `MM/YY` or `MMYY` string. Two-digit years map to 20YY.
          * Returns null if the format is invalid; does not check expiry.
          */
         fun parse(raw: String): CardExpiry? {
             val digits = raw.filter { it.isDigit() }
-            if (digits.length != 4) return null
-            val month = digits.substring(0, 2).toIntOrNull() ?: return null
-            val yy = digits.substring(2, 4).toIntOrNull() ?: return null
-            if (month !in 1..12) return null
-            return CardExpiry(month, 2000 + yy)
+            if (digits.length != CardRules.EXPIRY_TOTAL_DIGITS) return null
+            val month = digits.substring(0, CardRules.EXPIRY_MONTH_DIGITS).toIntOrNull() ?: return null
+            val yy = digits.substring(CardRules.EXPIRY_MONTH_DIGITS, CardRules.EXPIRY_TOTAL_DIGITS).toIntOrNull()
+                ?: return null
+            if (month !in CardRules.MONTH_RANGE) return null
+            return CardExpiry(month, CENTURY_BASE + yy)
         }
     }
 }

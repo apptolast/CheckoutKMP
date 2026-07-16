@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
+import com.apptolast.checkoutkmp.domain.model.CardRules
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.Receipt
 import com.apptolast.checkoutkmp.presentation.CheckoutIntent
@@ -44,9 +45,6 @@ import com.apptolast.checkoutkmp.presentation.CheckoutStatus
 import com.apptolast.checkoutkmp.presentation.MethodOption
 import com.apptolast.checkoutkmp.presentation.CheckoutViewModel
 import org.koin.compose.viewmodel.koinViewModel
-
-// Number of trailing digits kept visible in a masked card (e.g. •••• 4242).
-private const val MASKED_CARD_VISIBLE_DIGITS = 4
 
 // Accessibility note: these screens are plain vertical Column/Row layouts, so the natural focus
 // and reading order already matches the visual order. We deliberately do NOT set traversalIndex —
@@ -293,7 +291,7 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
         )
         Text(receipt.amount.formatWithCurrency(), style = MaterialTheme.typography.headlineMedium)
         val brand = brandLabel(receipt.brand)
-        val last4 = receipt.maskedCard.takeLast(MASKED_CARD_VISIBLE_DIGITS)
+        val last4 = receipt.maskedCard.takeLast(CardRules.LAST4_LENGTH)
         // Read the masked card cleanly instead of "dot dot dot dot 4242".
         val maskedCardDescription = tr("$brand, card ending in $last4", "$brand, tarjeta terminada en $last4")
         Text(

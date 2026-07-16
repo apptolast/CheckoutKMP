@@ -25,9 +25,6 @@ import com.apptolast.checkoutkmp.domain.model.CardRules
 import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
 import com.apptolast.checkoutkmp.domain.usecase.Luhn
 
-// UI-only cap for the expiry field (MMYY); the domain owns the PAN/CVV rules via CardRules.
-private const val EXPIRY_MAX_DIGITS = 4
-
 /**
  * Card entry form with live validation.
  *
@@ -68,7 +65,7 @@ fun CardForm(
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
             OutlinedTextField(
                 value = expiry,
-                onValueChange = { expiry = digitsOnly(it, max = EXPIRY_MAX_DIGITS) },
+                onValueChange = { expiry = digitsOnly(it, max = CardRules.EXPIRY_TOTAL_DIGITS) },
                 label = { Text(tr("MM/YY", "MM/AA")) },
                 isError = expiry.isNotEmpty() && !expiryValid,
                 singleLine = true,

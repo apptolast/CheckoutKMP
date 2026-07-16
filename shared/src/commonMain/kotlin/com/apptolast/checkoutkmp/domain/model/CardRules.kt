@@ -13,4 +13,12 @@ object CardRules {
 
     /** Number of trailing digits kept visible when masking a card (e.g. `•••• 4242`). */
     const val LAST4_LENGTH = 4
+
+    /** Card expiry is entered as MMYY: two month digits followed by two year digits. */
+    const val EXPIRY_MONTH_DIGITS = 2
+    const val EXPIRY_YEAR_DIGITS = 2
+    const val EXPIRY_TOTAL_DIGITS = EXPIRY_MONTH_DIGITS + EXPIRY_YEAR_DIGITS
+
+    /** Valid calendar-month range (1 = January … 12 = December). */
+    val MONTH_RANGE = 1..12
 }

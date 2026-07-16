@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import com.apptolast.checkoutkmp.domain.model.ScaChallenge
+import com.apptolast.checkoutkmp.domain.simulation.DemoDefaults
 
 /**
  * Simulated 3D Secure (SCA) challenge. The user enters the OTP; the screen supports the three
@@ -57,7 +58,7 @@ fun ScaChallengeScreen(
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
-            tr("Demo code: 123456", "Código demo: 123456"),
+            tr("Demo code: ${DemoDefaults.SCA_OTP}", "Código demo: ${DemoDefaults.SCA_OTP}"),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.outline,
         )

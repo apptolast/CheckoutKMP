@@ -2,6 +2,7 @@ package com.apptolast.checkoutkmp.data.psp
 
 import com.apptolast.checkoutkmp.domain.model.IdempotencyKey
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
+import com.apptolast.checkoutkmp.domain.simulation.DemoDefaults
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.simulation.PaymentSimulator
 import kotlinx.coroutines.delay
@@ -22,7 +23,7 @@ import kotlin.uuid.Uuid
 class FakePsp(
     override var scenario: PaymentScenario = PaymentScenario.APPROVED,
     private val latency: Duration = 0.milliseconds,
-    private val validOtp: String = "123456",
+    private val validOtp: String = DemoDefaults.SCA_OTP,
 ) : Psp, PaymentSimulator {
 
     private val ledger = mutableMapOf<IdempotencyKey, PspResponse>()
@@ -42,13 +43,10 @@ class FakePsp(
 
         chargeCount++
         val response = when (scenario) {
-            PaymentScenario.APPROVED -> PspResponse.Approved(
-                pspPaymentId = "pay_${Uuid.random()}",
-                authCode = "AUTH${Uuid.random().toString().take(6).uppercase()}",
-            )
+            PaymentScenario.APPROVED -> approved()
             PaymentScenario.NEEDS_SCA -> PspResponse.ScaRequired(
                 challengeId = "ch_${Uuid.random()}",
-                deliveryHint = "•••• 90",
+                deliveryHint = DELIVERY_HINT,
                 otpLength = validOtp.length,
             )
             PaymentScenario.DECLINED -> PspResponse.Declined(
@@ -82,12 +80,21 @@ class FakePsp(
             return PspResponse.ScaFailed("wrong_otp")
         }
 
-        val approved = PspResponse.Approved(
-            pspPaymentId = "pay_${Uuid.random()}",
-            authCode = "AUTH${Uuid.random().toString().take(6).uppercase()}",
-        )
         // Settle the ledger so a replayed authorize/completeSca is idempotent.
-        ledger[request.idempotencyKey] = approved
-        return approved
+        return approved().also { ledger[request.idempotencyKey] = it }
+    }
+
+    /** Builds a fresh approval with a random payment id and short auth code. */
+    private fun approved(): PspResponse.Approved = PspResponse.Approved(
+        pspPaymentId = "pay_${Uuid.random()}",
+        authCode = "AUTH${Uuid.random().toString().take(AUTH_CODE_LENGTH).uppercase()}",
+    )
+
+    private companion object {
+        /** Length of the random suffix in a simulated authorization code. */
+        const val AUTH_CODE_LENGTH = 6
+
+        /** Masked destination shown for the demo 3D Secure code delivery. */
+        const val DELIVERY_HINT = "•••• 90"
     }
 }
