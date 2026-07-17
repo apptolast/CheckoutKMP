@@ -88,11 +88,13 @@ fun ScaChallengeScreen(
             strings.enterCodeSentTo(challenge.otpLength, deliveryTarget),
             style = MaterialTheme.typography.bodyMedium,
         )
-        Text(
-            "${strings.demoCode}: ${DemoDefaults.SCA_OTP}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline,
-        )
+        DemoSurface {
+            Text(
+                "${strings.demoCode}: ${DemoDefaults.SCA_OTP}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         OutlinedTextField(
             value = otp,

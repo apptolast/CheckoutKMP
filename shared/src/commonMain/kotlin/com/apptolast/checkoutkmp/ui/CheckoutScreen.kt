@@ -1,5 +1,10 @@
 package com.apptolast.checkoutkmp.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +18,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -32,6 +38,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -70,6 +77,9 @@ import org.koin.compose.viewmodel.koinViewModel
 // Alpha applied to white content laid over the brand gradient header.
 private const val ON_GRADIENT_WATERMARK_ALPHA = 0.16f
 private const val ON_GRADIENT_MUTED_ALPHA = 0.85f
+
+// Fraction of the content height the entering status screen slides up from.
+private const val ENTER_SLIDE_FRACTION = 8
 
 // Accessibility note: these screens are plain vertical Column/Row layouts, so the natural focus
 // and reading order already matches the visual order. We deliberately do NOT set traversalIndex —
@@ -116,80 +126,137 @@ fun CheckoutScreen(
                 .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.spacingXLarge, vertical = Dimens.spacingLarge),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacingXLarge),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            when (val status = state.status) {
-                is CheckoutStatus.Authorized -> AuthorizedReceiptView(status, onIntent)
-                is CheckoutStatus.Captured -> CapturedReceiptView(status, onIntent)
-                is CheckoutStatus.Refunded -> RefundedReceiptView(status.receipt, onIntent)
-
-                is CheckoutStatus.RequiresSca -> ScaChallengeScreen(
-                    challenge = status.challenge,
-                    otpError = status.otpError,
-                    isVerifying = status.isVerifying,
-                    onVerify = { onIntent(CheckoutIntent.SubmitOtp(it)) },
-                    onCancel = { onIntent(CheckoutIntent.CancelSca) },
+            AnimatedContent(
+                targetState = state.status,
+                // Key by phase, not by instance: sub-state flips inside one phase (isVerifying,
+                // isCapturing, otpError…) update in place instead of re-running the transition.
+                contentKey = { phaseKey(it) },
+                transitionSpec = {
+                    (fadeIn() + slideInVertically { it / ENTER_SLIDE_FRACTION }) togetherWith fadeOut()
+                },
+                // Cap the content width so tablet/desktop layouts read as a centered checkout
+                // column instead of edge-to-edge stretched fields.
+                modifier = Modifier.widthIn(max = Dimens.contentMaxWidth).fillMaxWidth(),
+            ) { animatedStatus ->
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                )
-
-                is CheckoutStatus.RequiresRedirect -> RedirectApprovalScreen(
-                    provider = methodLabel(state.method),
-                    challenge = status.redirect,
-                    isConfirming = status.isConfirming,
-                    onReturn = { onIntent(CheckoutIntent.CompleteRedirect(it)) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                is CheckoutStatus.Failed -> FailureView(
-                    error = status.error,
-                    onRetry = { onIntent(CheckoutIntent.Retry) },
-                    onStartOver = { onIntent(CheckoutIntent.Reset) },
-                )
-
-                else -> {
-                    BrandHeader(state)
-                    ScenarioSelector(
-                        selected = state.scenario,
-                        enabled = !state.isProcessing,
-                        onSelect = { onIntent(CheckoutIntent.SelectScenario(it)) },
-                    )
-                    MethodSelector(
-                        selected = state.method,
-                        enabled = !state.isProcessing,
-                        onSelect = { onIntent(CheckoutIntent.SelectMethod(it)) },
-                    )
-                    if (state.method == MethodOption.CARD) {
-                        // Split tenders are a card-checkout feature; wallets pay the full total.
-                        GiftCardSection(
-                            state = state,
-                            enabled = !state.isProcessing,
-                            onIntent = onIntent,
-                        )
-                        if (state.plan.coversTotal) {
-                            GiftCardOnlyPay(
-                                enabled = !state.isProcessing,
-                                onPay = { onIntent(CheckoutIntent.SubmitGiftCardOnly) },
-                            )
-                        } else {
-                            CardForm(
-                                enabled = !state.isProcessing,
-                                // With a gift card applied, the card only pays the remainder.
-                                payAmount = state.plan.remainder.formatWithCurrency(),
-                                onSubmit = { onIntent(CheckoutIntent.Submit(it)) },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    } else {
-                        WalletPayButton(
-                            label = strings.payWith(methodLabel(state.method)),
-                            enabled = !state.isProcessing,
-                            onPay = { onIntent(CheckoutIntent.SubmitWallet) },
-                        )
-                    }
-                    StatusLine(status)
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spacingXLarge),
+                ) {
+                    StatusContent(animatedStatus, state, onIntent)
                 }
             }
         }
+    }
+}
+
+/** Stable per-screen discriminator for [AnimatedContent]; editing and processing share the form. */
+private fun phaseKey(status: CheckoutStatus): String = when (status) {
+    is CheckoutStatus.Authorized -> "authorized"
+    is CheckoutStatus.Captured -> "captured"
+    is CheckoutStatus.Refunded -> "refunded"
+    is CheckoutStatus.RequiresSca -> "sca"
+    is CheckoutStatus.RequiresRedirect -> "redirect"
+    is CheckoutStatus.Failed -> "failed"
+    else -> "form"
+}
+
+/** The per-status screen content, extracted so [AnimatedContent] animates over one composable. */
+@Composable
+private fun StatusContent(
+    status: CheckoutStatus,
+    state: CheckoutState,
+    onIntent: (CheckoutIntent) -> Unit,
+) {
+    val strings = LocalStrings.current
+    when (status) {
+        is CheckoutStatus.Authorized -> AuthorizedReceiptView(status, onIntent)
+        is CheckoutStatus.Captured -> CapturedReceiptView(status, onIntent)
+        is CheckoutStatus.Refunded -> RefundedReceiptView(status.receipt, onIntent)
+
+        is CheckoutStatus.RequiresSca -> ScaChallengeScreen(
+            challenge = status.challenge,
+            otpError = status.otpError,
+            isVerifying = status.isVerifying,
+            onVerify = { onIntent(CheckoutIntent.SubmitOtp(it)) },
+            onCancel = { onIntent(CheckoutIntent.CancelSca) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        is CheckoutStatus.RequiresRedirect -> RedirectApprovalScreen(
+            provider = methodLabel(state.method),
+            challenge = status.redirect,
+            isConfirming = status.isConfirming,
+            onReturn = { onIntent(CheckoutIntent.CompleteRedirect(it)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        is CheckoutStatus.Failed -> FailureView(
+            error = status.error,
+            onRetry = { onIntent(CheckoutIntent.Retry) },
+            onStartOver = { onIntent(CheckoutIntent.Reset) },
+        )
+
+        else -> {
+            BrandHeader(state)
+            DemoSurface {
+                ScenarioSelector(
+                    selected = state.scenario,
+                    enabled = !state.isProcessing,
+                    onSelect = { onIntent(CheckoutIntent.SelectScenario(it)) },
+                )
+            }
+            MethodSelector(
+                selected = state.method,
+                enabled = !state.isProcessing,
+                onSelect = { onIntent(CheckoutIntent.SelectMethod(it)) },
+            )
+            if (state.method == MethodOption.CARD) {
+                // Split tenders are a card-checkout feature; wallets pay the full total.
+                GiftCardSection(
+                    state = state,
+                    enabled = !state.isProcessing,
+                    onIntent = onIntent,
+                )
+                if (state.plan.coversTotal) {
+                    GiftCardOnlyPay(
+                        enabled = !state.isProcessing,
+                        onPay = { onIntent(CheckoutIntent.SubmitGiftCardOnly) },
+                    )
+                } else {
+                    CardForm(
+                        enabled = !state.isProcessing,
+                        // With a gift card applied, the card only pays the remainder.
+                        payAmount = state.plan.remainder.formatWithCurrency(),
+                        onSubmit = { onIntent(CheckoutIntent.Submit(it)) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            } else {
+                WalletPayButton(
+                    label = strings.payWith(methodLabel(state.method)),
+                    enabled = !state.isProcessing,
+                    onPay = { onIntent(CheckoutIntent.SubmitWallet) },
+                )
+            }
+            StatusLine(status)
+        }
+    }
+}
+
+/**
+ * Tonal container that visually separates demo-harness controls from the real checkout UI, so
+ * screenshots and demos read instantly which part is product and which is the test rig.
+ */
+@Composable
+internal fun DemoSurface(content: @Composable () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(Dimens.cornerMedium),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(Dimens.spacingMedium)) { content() }
     }
 }
 
@@ -213,7 +280,11 @@ private fun BrandHeader(state: CheckoutState) {
             tint = Color.White.copy(alpha = ON_GRADIENT_WATERMARK_ALPHA),
             modifier = Modifier.size(Dimens.watermarkIconSize).align(Alignment.TopEnd),
         )
-        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacingSmall)) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
+            // One merged announcement ("Order total, 49,99 €…") instead of three stray texts.
+            modifier = Modifier.semantics(mergeDescendants = true) { heading() },
+        ) {
             Text(
                 strings.orderTotal,
                 style = MaterialTheme.typography.labelLarge,
@@ -701,7 +772,11 @@ private fun ReceiptScaffold(
         Spacer(Modifier.height(Dimens.spacingSmall))
         ReceiptDetails(receipt)
         actions()
-        OutlinedButton(onClick = onDone, modifier = Modifier.padding(top = Dimens.spacingSmall)) {
+        // Full width like every other CTA in the flow — the exit action is not a footnote.
+        OutlinedButton(
+            onClick = onDone,
+            modifier = Modifier.fillMaxWidth().padding(top = Dimens.spacingSmall),
+        ) {
             Text(LocalStrings.current.newPayment)
         }
     }

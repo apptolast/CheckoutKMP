@@ -44,8 +44,14 @@ object Dimens {
     /** Tinted circle behind the terminal status icon. */
     val statusBadgeSize = 88.dp
 
+    /** Corner radius for inset tonal containers (demo surfaces). */
+    val cornerMedium = 12.dp
+
     /** Corner radius for the branded summary header. */
     val cornerLarge = 24.dp
+
+    /** Widest the checkout column gets on tablet/desktop before centering with side gutters. */
+    val contentMaxWidth = 480.dp
 
     /** Faint card motif watermarked into the branded header. */
     val watermarkIconSize = 72.dp
