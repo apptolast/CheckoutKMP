@@ -9,9 +9,21 @@ import kotlin.test.assertTrue
 class PaymentStateTest {
 
     @Test
-    fun maps_authorized_result_to_approved() {
+    fun maps_authorized_result_to_authorized() {
         val state = PaymentResult.Authorized(Fixtures.receipt).toPaymentState()
-        assertEquals(PaymentState.Approved(Fixtures.receipt), state)
+        assertEquals(PaymentState.Authorized(Fixtures.receipt), state)
+    }
+
+    @Test
+    fun maps_captured_result_to_captured() {
+        val state = PaymentResult.Captured(Fixtures.capturedReceipt).toPaymentState()
+        assertEquals(PaymentState.Captured(Fixtures.capturedReceipt), state)
+    }
+
+    @Test
+    fun maps_refunded_result_to_refunded() {
+        val state = PaymentResult.Refunded(Fixtures.refundedReceipt).toPaymentState()
+        assertEquals(PaymentState.Refunded(Fixtures.refundedReceipt), state)
     }
 
     @Test
@@ -27,12 +39,15 @@ class PaymentStateTest {
     }
 
     @Test
-    fun only_approved_and_failed_are_terminal() {
-        assertTrue(PaymentState.Approved(Fixtures.receipt).isTerminal)
-        assertTrue(PaymentState.Failed(PaymentError.Network).isTerminal)
-        assertFalse(PaymentState.Idle.isTerminal)
-        assertFalse(PaymentState.Processing.isTerminal)
-        assertFalse(PaymentState.RequiresSca(Fixtures.challenge).isTerminal)
+    fun only_settlement_outcomes_and_failures_are_settled() {
+        assertTrue(PaymentState.Authorized(Fixtures.receipt).isSettled)
+        assertTrue(PaymentState.Captured(Fixtures.capturedReceipt).isSettled)
+        assertTrue(PaymentState.Refunded(Fixtures.refundedReceipt).isSettled)
+        assertTrue(PaymentState.Failed(PaymentError.Network).isSettled)
+
+        assertFalse(PaymentState.Idle.isSettled)
+        assertFalse(PaymentState.Processing.isSettled)
+        assertFalse(PaymentState.RequiresSca(Fixtures.challenge).isSettled)
     }
 
     @Test

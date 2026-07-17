@@ -11,8 +11,10 @@ import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.PaymentMethod
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
 import com.apptolast.checkoutkmp.domain.model.PaymentState
+import com.apptolast.checkoutkmp.domain.usecase.CapturePaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
+import com.apptolast.checkoutkmp.domain.usecase.RefundPaymentUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,14 +23,20 @@ import kotlinx.coroutines.launch
 
 /**
  * MVI ViewModel for the checkout screen. Reduces [CheckoutIntent] + current state into a new
- * [CheckoutState] by driving the shared [ProcessPaymentUseCase] and [CompleteScaUseCase].
+ * [CheckoutState] by driving the shared use cases (authorize, SCA, capture, refund).
  *
  * The raw card only appears as a local `val` inside [submit]; it is tokenized and then out of scope.
  * The pending [PaymentRequest] kept for SCA is PAN-free, so retaining it is safe.
+ *
+ * Idempotency: the authorization key lives in [pendingRequest]; capture and refund each get their
+ * **own** key ([captureKey] / [refundKey]) created on the first attempt and reused while retrying,
+ * so no operation can ever run twice against the PSP.
  */
 class CheckoutViewModel(
     private val processPayment: ProcessPaymentUseCase,
     private val completeSca: CompleteScaUseCase,
+    private val capturePayment: CapturePaymentUseCase,
+    private val refundPayment: RefundPaymentUseCase,
     private val tokenizer: CardTokenizer,
     private val scenarioController: PaymentSimulator,
     initialState: CheckoutState,
@@ -39,6 +47,12 @@ class CheckoutViewModel(
 
     /** The in-flight request, reused (same IdempotencyKey) to complete SCA. Never contains a PAN. */
     private var pendingRequest: PaymentRequest? = null
+
+    /** Key of the current capture attempt; reused on retry, cleared once the capture succeeds. */
+    private var captureKey: IdempotencyKey? = null
+
+    /** Key of the current refund attempt; reused on retry, cleared once the refund succeeds. */
+    private var refundKey: IdempotencyKey? = null
 
     init {
         scenarioController.scenario = initialState.scenario
@@ -61,13 +75,22 @@ class CheckoutViewModel(
                 _state.update { it.copy(status = CheckoutStatus.Failed(PaymentError.Cancelled)) }
             }
 
+            CheckoutIntent.Capture -> capture()
+            CheckoutIntent.Refund -> refund()
+
             CheckoutIntent.Retry -> retry()
 
             CheckoutIntent.Reset -> {
-                pendingRequest = null
+                clearPendingWork()
                 _state.update { it.copy(status = CheckoutStatus.Editing) }
             }
         }
+    }
+
+    private fun clearPendingWork() {
+        pendingRequest = null
+        captureKey = null
+        refundKey = null
     }
 
     private fun submit(card: RawCard) {
@@ -82,6 +105,7 @@ class CheckoutViewModel(
                     method = PaymentMethod.Card(tokenized.token),
                     idempotencyKey = IdempotencyKey.random(),
                 )
+                clearPendingWork()
                 pendingRequest = request
                 authorize(request)
             }
@@ -98,7 +122,7 @@ class CheckoutViewModel(
         if (failed != null && failed.error.isTransient && request != null) {
             authorize(request)
         } else {
-            pendingRequest = null
+            clearPendingWork()
             _state.update { it.copy(status = CheckoutStatus.Editing) }
         }
     }
@@ -108,6 +132,55 @@ class CheckoutViewModel(
             processPayment(request).collect { paymentState ->
                 _state.update { it.copy(status = paymentState.toCheckoutStatus()) }
             }
+        }
+    }
+
+    /** Demo "order dispatched": capture the held funds, reusing [captureKey] across retries. */
+    private fun capture() {
+        val current = _state.value.status as? CheckoutStatus.Authorized ?: return
+        if (current.isCapturing) return
+
+        val key = captureKey ?: IdempotencyKey.random().also { captureKey = it }
+        _state.update { it.copy(status = current.copy(isCapturing = true, captureError = null)) }
+
+        viewModelScope.launch {
+            val newStatus = when (val result = capturePayment(current.receipt, key)) {
+                is PaymentState.Captured -> {
+                    captureKey = null
+                    CheckoutStatus.Captured(result.receipt)
+                }
+
+                is PaymentState.Failed ->
+                    current.copy(isCapturing = false, captureError = result.error)
+
+                // The capture use case only settles or fails; anything else leaves the receipt as-is.
+                else -> current.copy(isCapturing = false)
+            }
+            _state.update { it.copy(status = newStatus) }
+        }
+    }
+
+    /** Return the captured charge to the customer, reusing [refundKey] across retries. */
+    private fun refund() {
+        val current = _state.value.status as? CheckoutStatus.Captured ?: return
+        if (current.isRefunding) return
+
+        val key = refundKey ?: IdempotencyKey.random().also { refundKey = it }
+        _state.update { it.copy(status = current.copy(isRefunding = true, refundError = null)) }
+
+        viewModelScope.launch {
+            val newStatus = when (val result = refundPayment(current.receipt, key)) {
+                is PaymentState.Refunded -> {
+                    refundKey = null
+                    CheckoutStatus.Refunded(result.receipt)
+                }
+
+                is PaymentState.Failed ->
+                    current.copy(isRefunding = false, refundError = result.error)
+
+                else -> current.copy(isRefunding = false)
+            }
+            _state.update { it.copy(status = newStatus) }
         }
     }
 
@@ -122,9 +195,11 @@ class CheckoutViewModel(
                     PaymentState.Processing ->
                         CheckoutStatus.RequiresSca(challenge, isVerifying = true)
 
-                    is PaymentState.Approved -> {
+                    is PaymentState.Authorized,
+                    is PaymentState.Captured,
+                    is PaymentState.Refunded -> {
                         pendingRequest = null
-                        CheckoutStatus.Approved(paymentState.receipt)
+                        paymentState.toCheckoutStatus()
                     }
 
                     is PaymentState.RequiresSca ->
@@ -148,6 +223,8 @@ class CheckoutViewModel(
 private fun PaymentState.toCheckoutStatus(): CheckoutStatus = when (this) {
     PaymentState.Idle, PaymentState.Processing -> CheckoutStatus.Processing
     is PaymentState.RequiresSca -> CheckoutStatus.RequiresSca(challenge)
-    is PaymentState.Approved -> CheckoutStatus.Approved(receipt)
+    is PaymentState.Authorized -> CheckoutStatus.Authorized(receipt)
+    is PaymentState.Captured -> CheckoutStatus.Captured(receipt)
+    is PaymentState.Refunded -> CheckoutStatus.Refunded(receipt)
     is PaymentState.Failed -> CheckoutStatus.Failed(error)
 }

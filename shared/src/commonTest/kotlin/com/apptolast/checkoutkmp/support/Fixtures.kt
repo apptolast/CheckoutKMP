@@ -25,19 +25,28 @@ object Fixtures {
 
     val method = PaymentMethod.Card(visaToken)
 
+    /** An immediate-capture method: charges at authorization, never passes through Authorized. */
+    val walletMethod = PaymentMethod.Wallet(PaymentMethod.Wallet.Provider.PAYPAL)
+
     val amount = Amount(minorUnits = 1050, currency = Currency.EUR)
 
-    fun request(key: IdempotencyKey = IdempotencyKey.random()): PaymentRequest =
-        PaymentRequest(amount = amount, method = method, idempotencyKey = key)
+    fun request(
+        key: IdempotencyKey = IdempotencyKey.random(),
+        method: PaymentMethod = this.method,
+    ): PaymentRequest = PaymentRequest(amount = amount, method = method, idempotencyKey = key)
 
+    /** Authorized-only receipt: funds held, the customer has not been charged yet. */
     val receipt = Receipt(
         paymentId = "pay_123",
         amount = amount,
-        brand = CardBrand.VISA,
-        maskedCard = visaToken.masked,
+        method = method,
         authorizedAt = Instant.fromEpochSeconds(1_700_000_000),
         authCode = "AUTH42",
     )
+
+    val capturedReceipt = receipt.copy(capturedAt = Instant.fromEpochSeconds(1_700_000_100))
+
+    val refundedReceipt = capturedReceipt.copy(refundedAt = Instant.fromEpochSeconds(1_700_000_200))
 
     val challenge = ScaChallenge(challengeId = "ch_1", deliveryHint = "•••• 90", otpLength = 6)
 }

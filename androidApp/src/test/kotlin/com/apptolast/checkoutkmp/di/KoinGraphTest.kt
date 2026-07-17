@@ -5,8 +5,10 @@ import com.apptolast.checkoutkmp.domain.simulation.PaymentSimulator
 import com.apptolast.checkoutkmp.domain.tokenizer.CardTokenizer
 import com.apptolast.checkoutkmp.domain.di.domainModule
 import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
+import com.apptolast.checkoutkmp.domain.usecase.CapturePaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
+import com.apptolast.checkoutkmp.domain.usecase.RefundPaymentUseCase
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import kotlin.test.AfterTest
@@ -30,6 +32,8 @@ class KoinGraphTest {
         assertNotNull(koin.get<CardTokenizer>())
         assertNotNull(koin.get<ProcessPaymentUseCase>())
         assertNotNull(koin.get<CompleteScaUseCase>())
+        assertNotNull(koin.get<CapturePaymentUseCase>())
+        assertNotNull(koin.get<RefundPaymentUseCase>())
         assertNotNull(koin.get<PaymentSimulator>())
     }
 }

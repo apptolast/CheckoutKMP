@@ -1,7 +1,9 @@
 package com.apptolast.checkoutkmp.data.repository
 
+import com.apptolast.checkoutkmp.domain.model.IdempotencyKey
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
 import com.apptolast.checkoutkmp.domain.model.PaymentResult
+import com.apptolast.checkoutkmp.domain.model.Receipt
 import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
 import kotlinx.coroutines.delay
 import kotlin.time.Duration
@@ -37,6 +39,12 @@ class RetryingPaymentRepository(
 
     override suspend fun completeSca(request: PaymentRequest, otp: String): PaymentResult =
         retryTransient { delegate.completeSca(request, otp) }
+
+    override suspend fun capture(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult =
+        retryTransient { delegate.capture(receipt, idempotencyKey) }
+
+    override suspend fun refund(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult =
+        retryTransient { delegate.refund(receipt, idempotencyKey) }
 
     private suspend fun retryTransient(block: suspend () -> PaymentResult): PaymentResult {
         var attempt = 0

@@ -11,7 +11,8 @@ import kotlinx.coroutines.flow.flow
  * Completes a pending 3D Secure challenge for [PaymentRequest] using the user-entered OTP, reusing
  * the original [com.apptolast.checkoutkmp.domain.model.IdempotencyKey].
  *
- * Emits [PaymentState.Processing], then [PaymentState.Approved] or [PaymentState.Failed]
+ * Emits [PaymentState.Processing], then [PaymentState.Authorized] (or [PaymentState.Captured] for
+ * an immediate-capture method) or [PaymentState.Failed]
  * (e.g. [com.apptolast.checkoutkmp.domain.model.PaymentError.ScaFailed]).
  */
 class CompleteScaUseCase(

@@ -10,9 +10,10 @@ import kotlinx.coroutines.flow.flow
 /**
  * Authorizes a payment and emits the resulting state transitions.
  *
- * Emits [PaymentState.Processing] immediately, then the terminal/intermediate outcome:
- * [PaymentState.Approved], [PaymentState.RequiresSca] or [PaymentState.Failed]. The repository
- * has already classified any error, so this use case stays a thin, pure orchestration.
+ * Emits [PaymentState.Processing] immediately, then the settlement/intermediate outcome:
+ * [PaymentState.Authorized] (funds held), [PaymentState.Captured] (immediate-capture methods),
+ * [PaymentState.RequiresSca] or [PaymentState.Failed]. The repository has already classified any
+ * error, so this use case stays a thin, pure orchestration.
  */
 class ProcessPaymentUseCase(
     private val repository: PaymentRepository,

@@ -24,6 +24,12 @@ sealed interface CheckoutIntent {
     /** The user cancelled the 3D Secure challenge. */
     data object CancelSca : CheckoutIntent
 
+    /** Demo "the order shipped": capture the authorized funds (one IdempotencyKey per capture). */
+    data object Capture : CheckoutIntent
+
+    /** Refund the captured payment (one IdempotencyKey per refund). */
+    data object Refund : CheckoutIntent
+
     /** Retry a transient failure, reusing the same pending request (same IdempotencyKey). */
     data object Retry : CheckoutIntent
 

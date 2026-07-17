@@ -16,6 +16,8 @@ val presentationModule = module {
         CheckoutViewModel(
             processPayment = get(),
             completeSca = get(),
+            capturePayment = get(),
+            refundPayment = get(),
             tokenizer = get(),
             scenarioController = get(),
             initialState = CheckoutState(amount = demoAmount),

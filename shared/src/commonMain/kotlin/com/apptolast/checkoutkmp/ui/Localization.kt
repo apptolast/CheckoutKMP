@@ -44,8 +44,15 @@ interface Strings {
     fun cardEndingIn(brand: String, last4: String): String
     fun brandCard(brand: String): String
 
-    // Receipt
-    val paymentApproved: String
+    // Receipt (authorization vs capture lifecycle)
+    val paymentAuthorized: String
+    val authorizedChargeNote: String
+    val paymentCaptured: String
+    val paymentRefunded: String
+    val simulateDispatch: String
+    val refund: String
+    val capturingPayment: String
+    val refundingPayment: String
     val authCode: String
     val paymentId: String
     val newPayment: String
@@ -104,7 +111,14 @@ object EnStrings : Strings {
     override fun cardEndingIn(brand: String, last4: String) = "$brand, card ending in $last4"
     override fun brandCard(brand: String) = "$brand card"
 
-    override val paymentApproved = "Payment approved"
+    override val paymentAuthorized = "Payment authorized"
+    override val authorizedChargeNote = "You'll be charged when the order is dispatched."
+    override val paymentCaptured = "Payment charged"
+    override val paymentRefunded = "Payment refunded"
+    override val simulateDispatch = "Simulate order dispatch"
+    override val refund = "Refund"
+    override val capturingPayment = "Charging…"
+    override val refundingPayment = "Refunding…"
     override val authCode = "Auth code"
     override val paymentId = "Payment id"
     override val newPayment = "New payment"
@@ -162,7 +176,14 @@ object EsStrings : Strings {
     override fun cardEndingIn(brand: String, last4: String) = "$brand, tarjeta terminada en $last4"
     override fun brandCard(brand: String) = "Tarjeta $brand"
 
-    override val paymentApproved = "Pago aprobado"
+    override val paymentAuthorized = "Pago autorizado"
+    override val authorizedChargeNote = "Se cobrará al enviar el pedido."
+    override val paymentCaptured = "Pago cobrado"
+    override val paymentRefunded = "Pago reembolsado"
+    override val simulateDispatch = "Simular envío del pedido"
+    override val refund = "Reembolsar"
+    override val capturingPayment = "Cobrando…"
+    override val refundingPayment = "Reembolsando…"
     override val authCode = "Código de autorización"
     override val paymentId = "ID de pago"
     override val newPayment = "Nuevo pago"

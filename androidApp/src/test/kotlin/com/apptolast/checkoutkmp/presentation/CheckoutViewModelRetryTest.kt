@@ -10,8 +10,10 @@ import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.CardExpiry
 import com.apptolast.checkoutkmp.domain.model.Currency
 import com.apptolast.checkoutkmp.domain.model.PaymentError
+import com.apptolast.checkoutkmp.domain.usecase.CapturePaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
+import com.apptolast.checkoutkmp.domain.usecase.RefundPaymentUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -38,6 +40,8 @@ class CheckoutViewModelRetryTest {
         return CheckoutViewModel(
             processPayment = ProcessPaymentUseCase(repo),
             completeSca = CompleteScaUseCase(repo),
+            capturePayment = CapturePaymentUseCase(repo),
+            refundPayment = RefundPaymentUseCase(repo),
             tokenizer = FakeCardTokenizer(),
             scenarioController = psp,
             initialState = CheckoutState(amount = Amount(4999, Currency.EUR), scenario = scenario),

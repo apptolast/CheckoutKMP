@@ -9,8 +9,10 @@ import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.CardExpiry
 import com.apptolast.checkoutkmp.domain.model.Currency
 import com.apptolast.checkoutkmp.domain.model.PaymentError
+import com.apptolast.checkoutkmp.domain.usecase.CapturePaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
+import com.apptolast.checkoutkmp.domain.usecase.RefundPaymentUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -37,6 +39,8 @@ class CheckoutViewModelScaTest {
         val vm = CheckoutViewModel(
             processPayment = ProcessPaymentUseCase(repo),
             completeSca = CompleteScaUseCase(repo),
+            capturePayment = CapturePaymentUseCase(repo),
+            refundPayment = RefundPaymentUseCase(repo),
             tokenizer = FakeCardTokenizer(),
             scenarioController = psp,
             // State is the source of truth; init syncs this onto the PSP.
@@ -62,7 +66,7 @@ class CheckoutViewModelScaTest {
     }
 
     @Test
-    fun correct_otp_approves_the_payment() = runTest {
+    fun correct_otp_authorizes_the_payment() = runTest {
         val (_, vm) = newViewModel()
 
         vm.onIntent(CheckoutIntent.Submit(validCard))
@@ -70,7 +74,8 @@ class CheckoutViewModelScaTest {
         vm.onIntent(CheckoutIntent.SubmitOtp("123456"))
         advanceUntilIdle()
 
-        assertIs<CheckoutStatus.Approved>(vm.state.value.status)
+        // A card completes SCA into Authorized: funds held, charge deferred to capture.
+        assertIs<CheckoutStatus.Authorized>(vm.state.value.status)
     }
 
     @Test

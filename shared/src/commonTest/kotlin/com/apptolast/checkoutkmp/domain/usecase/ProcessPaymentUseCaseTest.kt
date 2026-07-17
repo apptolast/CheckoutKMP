@@ -14,12 +14,25 @@ import kotlin.test.assertEquals
 class ProcessPaymentUseCaseTest {
 
     @Test
-    fun emits_processing_then_approved() = runTest {
+    fun emits_processing_then_authorized() = runTest {
         val repo = FakePaymentRepository(onAuthorize = { PaymentResult.Authorized(Fixtures.receipt) })
 
         ProcessPaymentUseCase(repo).invoke(Fixtures.request()).test {
             assertEquals(PaymentState.Processing, awaitItem())
-            assertEquals(PaymentState.Approved(Fixtures.receipt), awaitItem())
+            assertEquals(PaymentState.Authorized(Fixtures.receipt), awaitItem())
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun an_immediate_capture_method_emits_captured_and_never_authorized() = runTest {
+        val repo = FakePaymentRepository(
+            onAuthorize = { PaymentResult.Captured(Fixtures.capturedReceipt) },
+        )
+
+        ProcessPaymentUseCase(repo).invoke(Fixtures.request(method = Fixtures.walletMethod)).test {
+            assertEquals(PaymentState.Processing, awaitItem())
+            assertEquals(PaymentState.Captured(Fixtures.capturedReceipt), awaitItem())
             awaitComplete()
         }
     }
@@ -65,7 +78,7 @@ class ProcessPaymentUseCaseTest {
 
         ProcessPaymentUseCase(repo).invoke(Fixtures.request(key)).test {
             awaitItem() // Processing
-            awaitItem() // Approved
+            awaitItem() // Authorized
             awaitComplete()
         }
 

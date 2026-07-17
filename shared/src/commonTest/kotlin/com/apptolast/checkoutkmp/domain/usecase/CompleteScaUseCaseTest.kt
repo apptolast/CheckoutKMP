@@ -19,7 +19,7 @@ class CompleteScaUseCaseTest {
 
         CompleteScaUseCase(repo).invoke(Fixtures.request(), otp = "123456").test {
             assertEquals(PaymentState.Processing, awaitItem())
-            assertEquals(PaymentState.Approved(Fixtures.receipt), awaitItem())
+            assertEquals(PaymentState.Authorized(Fixtures.receipt), awaitItem())
             awaitComplete()
         }
     }
@@ -43,7 +43,7 @@ class CompleteScaUseCaseTest {
 
         CompleteScaUseCase(repo).invoke(Fixtures.request(key), otp = "654321").test {
             awaitItem() // Processing
-            awaitItem() // Approved
+            awaitItem() // Authorized
             awaitComplete()
         }
 

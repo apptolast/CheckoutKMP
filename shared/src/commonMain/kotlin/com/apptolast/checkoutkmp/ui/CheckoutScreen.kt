@@ -51,8 +51,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
-import com.apptolast.checkoutkmp.domain.model.CardRules
 import com.apptolast.checkoutkmp.domain.model.PaymentError
+import com.apptolast.checkoutkmp.domain.model.PaymentMethod
 import com.apptolast.checkoutkmp.domain.model.Receipt
 import com.apptolast.checkoutkmp.presentation.CheckoutIntent
 import com.apptolast.checkoutkmp.presentation.CheckoutState
@@ -113,10 +113,9 @@ fun CheckoutScreen(
             verticalArrangement = Arrangement.spacedBy(Dimens.spacingXLarge),
         ) {
             when (val status = state.status) {
-                is CheckoutStatus.Approved -> ReceiptView(
-                    receipt = status.receipt,
-                    onDone = { onIntent(CheckoutIntent.Reset) },
-                )
+                is CheckoutStatus.Authorized -> AuthorizedReceiptView(status, onIntent)
+                is CheckoutStatus.Captured -> CapturedReceiptView(status, onIntent)
+                is CheckoutStatus.Refunded -> RefundedReceiptView(status.receipt, onIntent)
 
                 is CheckoutStatus.RequiresSca -> ScaChallengeScreen(
                     challenge = status.challenge,
@@ -430,9 +429,90 @@ private fun FailureView(
     }
 }
 
+/** Funds held, customer not charged yet: offers the demo "order dispatched" capture. */
 @Composable
-private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
+private fun AuthorizedReceiptView(
+    status: CheckoutStatus.Authorized,
+    onIntent: (CheckoutIntent) -> Unit,
+) {
     val strings = LocalStrings.current
+    ReceiptScaffold(
+        receipt = status.receipt,
+        headline = strings.paymentAuthorized,
+        amountColor = MaterialTheme.colorScheme.primary,
+        badgeIcon = CheckoutIcons.Lock,
+        badgeContainer = MaterialTheme.colorScheme.secondaryContainer,
+        badgeContent = MaterialTheme.colorScheme.onSecondaryContainer,
+        note = strings.authorizedChargeNote,
+        onDone = { onIntent(CheckoutIntent.Reset) },
+    ) {
+        SettlementAction(
+            label = strings.simulateDispatch,
+            busyLabel = strings.capturingPayment,
+            isBusy = status.isCapturing,
+            error = status.captureError,
+            onClick = { onIntent(CheckoutIntent.Capture) },
+        )
+    }
+}
+
+/** The customer has been charged: offers the refund. */
+@Composable
+private fun CapturedReceiptView(
+    status: CheckoutStatus.Captured,
+    onIntent: (CheckoutIntent) -> Unit,
+) {
+    val strings = LocalStrings.current
+    ReceiptScaffold(
+        receipt = status.receipt,
+        headline = strings.paymentCaptured,
+        amountColor = extraColors.success,
+        badgeIcon = CheckoutIcons.CheckCircle,
+        badgeContainer = extraColors.successContainer,
+        badgeContent = extraColors.success,
+        onDone = { onIntent(CheckoutIntent.Reset) },
+    ) {
+        SettlementAction(
+            label = strings.refund,
+            busyLabel = strings.refundingPayment,
+            isBusy = status.isRefunding,
+            error = status.refundError,
+            onClick = { onIntent(CheckoutIntent.Refund) },
+        )
+    }
+}
+
+/** The charge was returned to the customer. */
+@Composable
+private fun RefundedReceiptView(receipt: Receipt, onIntent: (CheckoutIntent) -> Unit) {
+    ReceiptScaffold(
+        receipt = receipt,
+        headline = LocalStrings.current.paymentRefunded,
+        amountColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        badgeIcon = CheckoutIcons.Refresh,
+        badgeContainer = MaterialTheme.colorScheme.surfaceVariant,
+        badgeContent = MaterialTheme.colorScheme.onSurfaceVariant,
+        onDone = { onIntent(CheckoutIntent.Reset) },
+    )
+}
+
+/**
+ * Shared layout for the three settlement receipts (authorized / captured / refunded): badge,
+ * announced headline, amount, optional charge-timing note, itemised details and the phase-specific
+ * [actions] above the always-present "new payment" exit.
+ */
+@Composable
+private fun ReceiptScaffold(
+    receipt: Receipt,
+    headline: String,
+    amountColor: Color,
+    badgeIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    badgeContainer: Color,
+    badgeContent: Color,
+    note: String? = null,
+    onDone: () -> Unit,
+    actions: @Composable () -> Unit = {},
+) {
     Column(
         // fillMaxWidth, not fillMaxSize: the parent column is scrollable, so height is unbounded.
         modifier = Modifier.fillMaxWidth(),
@@ -441,14 +521,14 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
     ) {
         Spacer(Modifier.height(Dimens.spacingLarge))
         StatusBadge(
-            icon = CheckoutIcons.CheckCircle,
-            containerColor = extraColors.successContainer,
-            contentColor = extraColors.success,
+            icon = badgeIcon,
+            containerColor = badgeContainer,
+            contentColor = badgeContent,
         )
         Text(
-            strings.paymentApproved,
+            headline,
             style = MaterialTheme.typography.headlineSmall,
-            // Announce success on arrival and expose it as a heading for navigation.
+            // Announce the settlement outcome on arrival and expose it as a heading for navigation.
             modifier = Modifier.semantics {
                 heading()
                 liveRegion = LiveRegionMode.Polite
@@ -457,17 +537,57 @@ private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
         Text(
             receipt.amount.formatWithCurrency(),
             style = MaterialTheme.typography.headlineMedium,
-            color = extraColors.success,
+            color = amountColor,
         )
+        if (note != null) {
+            Text(
+                note,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
         Spacer(Modifier.height(Dimens.spacingSmall))
         ReceiptDetails(receipt)
+        actions()
         OutlinedButton(onClick = onDone, modifier = Modifier.padding(top = Dimens.spacingSmall)) {
-            Text(strings.newPayment)
+            Text(LocalStrings.current.newPayment)
         }
     }
 }
 
-/** The itemised receipt card: masked card, auth code and payment id. */
+/**
+ * The capture/refund demo button with its in-flight progress and an inline, announced error line —
+ * a failed settlement keeps the receipt on screen so tapping again retries with the same
+ * IdempotencyKey.
+ */
+@Composable
+private fun SettlementAction(
+    label: String,
+    busyLabel: String,
+    isBusy: Boolean,
+    error: PaymentError?,
+    onClick: () -> Unit,
+) {
+    if (error != null) {
+        Text(
+            errorMessage(error),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+        )
+    }
+    Button(onClick = onClick, enabled = !isBusy, modifier = Modifier.fillMaxWidth()) {
+        if (isBusy) {
+            CircularProgressIndicator(modifier = Modifier.size(Dimens.inlineProgressSize))
+            Spacer(Modifier.width(Dimens.spacingSmall))
+        }
+        Text(if (isBusy) busyLabel else label)
+    }
+}
+
+/** The itemised receipt card: payment method, auth code and payment id. */
 @Composable
 private fun ReceiptDetails(receipt: Receipt) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -476,16 +596,24 @@ private fun ReceiptDetails(receipt: Receipt) {
             verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium),
         ) {
             val strings = LocalStrings.current
-            val brand = brandLabel(receipt.brand)
-            val last4 = receipt.maskedCard.takeLast(CardRules.LAST4_LENGTH)
-            val maskedCardDescription = strings.cardEndingIn(brand, last4)
-            ReceiptRow(
-                icon = CheckoutIcons.CreditCard,
-                label = strings.card,
-                value = "$brand · ${receipt.maskedCard}",
-                // Read the masked card cleanly instead of "dot dot dot dot 4242".
-                valueDescription = maskedCardDescription,
-            )
+            when (val method = receipt.method) {
+                is PaymentMethod.Card -> {
+                    val brand = brandLabel(method.token.brand)
+                    ReceiptRow(
+                        icon = CheckoutIcons.CreditCard,
+                        label = strings.card,
+                        value = "$brand · ${method.token.masked}",
+                        // Read the masked card cleanly instead of "dot dot dot dot 4242".
+                        valueDescription = strings.cardEndingIn(brand, method.token.last4),
+                    )
+                }
+
+                is PaymentMethod.Wallet -> ReceiptRow(
+                    icon = CheckoutIcons.CreditCard,
+                    label = strings.paymentMethod,
+                    value = method.label,
+                )
+            }
             ReceiptRow(
                 icon = CheckoutIcons.CheckCircle,
                 label = strings.authCode,

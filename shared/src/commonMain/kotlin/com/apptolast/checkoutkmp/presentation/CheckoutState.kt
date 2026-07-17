@@ -45,8 +45,27 @@ sealed interface CheckoutStatus {
         val isVerifying: Boolean = false,
     ) : CheckoutStatus
 
-    /** Terminal success. */
-    data class Approved(val receipt: Receipt) : CheckoutStatus
+    /**
+     * Funds held; the customer has NOT been charged yet. [isCapturing] is true while the demo
+     * "order dispatched" capture is in flight; [captureError] carries a failed capture so the UI
+     * can show it inline and let the user retry (same capture IdempotencyKey) without leaving
+     * the receipt.
+     */
+    data class Authorized(
+        val receipt: Receipt,
+        val isCapturing: Boolean = false,
+        val captureError: PaymentError? = null,
+    ) : CheckoutStatus
+
+    /** The customer has been charged. [isRefunding]/[refundError] mirror the capture flags. */
+    data class Captured(
+        val receipt: Receipt,
+        val isRefunding: Boolean = false,
+        val refundError: PaymentError? = null,
+    ) : CheckoutStatus
+
+    /** The charge was returned to the customer. Terminal. */
+    data class Refunded(val receipt: Receipt) : CheckoutStatus
 
     /** Terminal failure. */
     data class Failed(val error: PaymentError) : CheckoutStatus

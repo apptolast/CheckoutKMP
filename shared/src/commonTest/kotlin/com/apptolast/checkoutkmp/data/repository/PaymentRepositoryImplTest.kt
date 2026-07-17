@@ -4,6 +4,7 @@ import com.apptolast.checkoutkmp.data.psp.FakePsp
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.model.IdempotencyKey
 import com.apptolast.checkoutkmp.domain.model.PaymentError
+import com.apptolast.checkoutkmp.domain.model.PaymentMethod
 import com.apptolast.checkoutkmp.domain.model.PaymentResult
 import com.apptolast.checkoutkmp.support.Fixtures
 import com.apptolast.checkoutkmp.support.FixedClock
@@ -26,9 +27,11 @@ class PaymentRepositoryImplTest {
 
         val receipt = assertIs<PaymentResult.Authorized>(result).receipt
         assertEquals(Fixtures.amount, receipt.amount)
-        assertEquals("•••• 4242", receipt.maskedCard) // no PAN, only last4
+        val card = assertIs<PaymentMethod.Card>(receipt.method)
+        assertEquals("•••• 4242", card.token.masked) // no PAN, only last4
         assertTrue(receipt.paymentId.startsWith("pay_"))
         assertTrue(receipt.authCode.isNotBlank())
+        assertEquals(null, receipt.capturedAt) // a card authorization holds funds, it does not charge
     }
 
     @Test
