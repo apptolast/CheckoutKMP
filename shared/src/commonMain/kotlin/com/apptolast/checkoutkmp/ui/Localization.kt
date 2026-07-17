@@ -69,6 +69,14 @@ interface Strings {
     val giftCardCoversTotal: String
     val payWithGiftCard: String
     fun demoGiftCards(codes: String): String
+    fun removeGiftCard(code: String): String
+    fun giftCardNotUsedWith(provider: String): String
+
+    /** The typographic minus (U+2212) prefixed to a gift-card tender on the receipt. */
+    val minusSign: String
+
+    /** Spoken form of a negative tender amount — screen readers don't read [minusSign] reliably. */
+    fun minusAmount(amount: String): String
 
     // Receipt (authorization vs capture lifecycle)
     val paymentAuthorized: String
@@ -180,6 +188,11 @@ object EnStrings : Strings {
     override val giftCardCoversTotal = "The gift card covers the total — no card or 3D Secure needed."
     override val payWithGiftCard = "Pay with gift card"
     override fun demoGiftCards(codes: String) = "Demo codes: $codes"
+    override fun removeGiftCard(code: String) = "Remove gift card $code"
+    override fun giftCardNotUsedWith(provider: String) =
+        "The gift card is not used with $provider — the full total will be charged."
+    override val minusSign = "−"
+    override fun minusAmount(amount: String) = "minus $amount"
 
     override val paymentAuthorized = "Payment authorized"
     override val authorizedChargeNote = "You'll be charged when the order is dispatched."
@@ -287,6 +300,11 @@ object EsStrings : Strings {
     override val giftCardCoversTotal = "La tarjeta regalo cubre el total: no hace falta tarjeta ni 3D Secure."
     override val payWithGiftCard = "Pagar con tarjeta regalo"
     override fun demoGiftCards(codes: String) = "Códigos demo: $codes"
+    override fun removeGiftCard(code: String) = "Quitar la tarjeta regalo $code"
+    override fun giftCardNotUsedWith(provider: String) =
+        "La tarjeta regalo no se usa con $provider: se cobrará el total completo."
+    override val minusSign = "−"
+    override fun minusAmount(amount: String) = "menos $amount"
 
     override val paymentAuthorized = "Pago autorizado"
     override val authorizedChargeNote = "Se cobrará al enviar el pedido."

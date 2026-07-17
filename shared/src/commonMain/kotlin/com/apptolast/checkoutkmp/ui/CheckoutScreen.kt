@@ -25,6 +25,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +36,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -61,6 +64,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.apptolast.checkoutkmp.domain.simulation.DemoDefaults
@@ -262,6 +267,17 @@ private fun StatusContent(
                     enabled = !state.isProcessing,
                     onPay = { onIntent(CheckoutIntent.SubmitWallet) },
                 )
+                if (state.walletIgnoresGiftCard) {
+                    // The user last saw "remaining to pay X" with the gift card applied; say
+                    // explicitly that this wallet charges the full total instead. Polite live
+                    // region so switching methods announces the caveat without stealing focus.
+                    Text(
+                        strings.giftCardNotUsedWith(methodLabel(state.method)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
             }
             StatusLine(status)
         }
@@ -435,6 +451,8 @@ private fun GiftCardSection(
         val giftCard = state.giftCard
         if (giftCard == null) {
             var code by remember { mutableStateOf("") }
+            val fieldEnabled = enabled && !state.isApplyingGiftCard
+            val apply = { if (code.isNotBlank()) onIntent(CheckoutIntent.ApplyGiftCard(code)) }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
@@ -442,43 +460,72 @@ private fun GiftCardSection(
             ) {
                 OutlinedTextField(
                     value = code,
-                    onValueChange = { code = it },
+                    onValueChange = { new ->
+                        // A stale "not found" verdict clears as soon as the user edits the code.
+                        if (new != code && state.giftCardNotFound) {
+                            onIntent(CheckoutIntent.ClearGiftCardError)
+                        }
+                        code = new
+                    },
                     label = { Text(strings.giftCardCode) },
                     singleLine = true,
-                    enabled = enabled,
+                    enabled = fieldEnabled,
                     isError = state.giftCardNotFound,
+                    supportingText = {
+                        // Slot always present (the demo hint by default) so isError associates the
+                        // message with the field semantically and nothing jumps when it appears.
+                        if (state.giftCardNotFound) {
+                            Text(
+                                strings.giftCardNotFound,
+                                // Announce "not found" when it appears without stealing focus.
+                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                            )
+                        } else {
+                            Text(
+                                strings.demoGiftCards(
+                                    "${DemoDefaults.GIFT_CARD_PARTIAL}, ${DemoDefaults.GIFT_CARD_FULL}",
+                                ),
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        // Codes are uppercase alphanumerics, never words: no autocorrect.
+                        capitalization = KeyboardCapitalization.Characters,
+                        autoCorrectEnabled = false,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { apply() }),
                     modifier = Modifier.weight(1f),
                 )
                 Button(
-                    onClick = { onIntent(CheckoutIntent.ApplyGiftCard(code)) },
-                    enabled = enabled && code.isNotBlank(),
+                    onClick = apply,
+                    enabled = fieldEnabled && code.isNotBlank(),
                 ) {
+                    if (state.isApplyingGiftCard) {
+                        // In-button progress, same standard as the SCA Verify button: no layout jump.
+                        CircularProgressIndicator(
+                            color = LocalContentColor.current,
+                            strokeWidth = Dimens.progressStrokeThin,
+                            modifier = Modifier.size(Dimens.iconSmall),
+                        )
+                        Spacer(Modifier.width(Dimens.spacingSmall))
+                    }
                     Text(strings.apply)
                 }
             }
-            val supportingText = if (state.giftCardNotFound) {
-                strings.giftCardNotFound
-            } else {
-                strings.demoGiftCards("${DemoDefaults.GIFT_CARD_PARTIAL}, ${DemoDefaults.GIFT_CARD_FULL}")
-            }
-            Text(
-                supportingText,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (state.giftCardNotFound) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                // Announce "not found" when it appears without stealing focus.
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
         } else {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    // One merged announcement (code + applied + remaining) instead of three stray
+                    // texts; the Polite live region announces the tender the moment it is applied.
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+                ) {
                     Text(giftCard.code, style = MaterialTheme.typography.bodyLarge)
                     Text(
                         strings.giftCardApplied(state.plan.giftCardPortion.formatWithCurrency()),
@@ -495,7 +542,14 @@ private fun GiftCardSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = { onIntent(CheckoutIntent.RemoveGiftCard) }, enabled = enabled) {
+                TextButton(
+                    onClick = { onIntent(CheckoutIntent.RemoveGiftCard) },
+                    enabled = enabled,
+                    // "Remove" alone is ambiguous out of context: name the target for readers.
+                    modifier = Modifier.semantics {
+                        contentDescription = strings.removeGiftCard(giftCard.code)
+                    },
+                ) {
                     Text(strings.remove)
                 }
             }
@@ -905,11 +959,15 @@ internal fun ReceiptDetails(receipt: Receipt) {
                 )
             }
             // The gift-card tender of a split payment (skipped when it IS the method, shown above).
-            if (receipt.giftCard != null && receipt.method !is PaymentMethod.GiftCard) {
+            val giftCardTender = receipt.giftCard
+            if (giftCardTender != null && receipt.method !is PaymentMethod.GiftCard) {
+                val tenderAmount = giftCardTender.amount.formatWithCurrency()
                 ReceiptRow(
                     icon = CheckoutIcons.Receipt,
                     label = strings.giftCard,
-                    value = "−${receipt.giftCard.amount.formatWithCurrency()}",
+                    value = "${strings.minusSign}$tenderAmount",
+                    // Read "minus X" cleanly — screen readers skip or garble the U+2212 sign.
+                    valueDescription = strings.minusAmount(tenderAmount),
                 )
             }
             if (receipt.authCode != null) {
