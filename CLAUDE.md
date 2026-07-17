@@ -34,9 +34,9 @@ e iOS son hosts finos.
     model/        Amount, Currency, PaymentMethod, CardToken, IdempotencyKey, CardRules,
                   PaymentRequest, Receipt, PaymentError, PaymentState, GiftCard + SplitPlan
     usecase/      ProcessPaymentUseCase, CompleteScaUseCase, CompleteRedirectUseCase (webhook),
-                  CapturePaymentUseCase, RefundPaymentUseCase, ProcessSplitPaymentUseCase
-                  (saga + compensación), ApplyGiftCardUseCase, ReverseGiftCardRedemptionUseCase,
-                  Luhn, caducidad
+                  CapturePaymentUseCase, VoidAuthorizationUseCase, RefundPaymentUseCase,
+                  ProcessSplitPaymentUseCase (saga + compensación), ApplyGiftCardUseCase,
+                  ReverseGiftCardRedemptionUseCase, Luhn, caducidad
     repository/   contrato PaymentRepository
     giftcard/     contrato GiftCardService (lookup/redeem/reverse + resultados)
     tokenizer/    contrato CardTokenizer (+ RawCard, TokenizationResult)
@@ -91,6 +91,10 @@ iosApp        host fino: ComposeView monta MainViewControllerKt.MainViewControll
 - **Elegibilidad post-venta:** `PaymentMethod.afterSales` (`AfterSalesPolicy`: `canChangeSize`,
   `canRefundToOrigin`) — propiedad del método, nunca `if`s por proveedor. Wallets no admiten cambio
   de talla; el botón de reembolso solo se muestra si `canRefundToOrigin`.
+- **Void ≠ reembolso:** cancelar antes del envío hace **void** (`Authorized → Voided`, libera la
+  retención, no hubo cargo); el reembolso solo aplica a cargos capturados. Un hold anulado no se
+  captura ni se reembolsa; un cargo capturado no se anula. La retención **caduca** en el `FakePsp`
+  (`DEFAULT_AUTHORIZATION_VALIDITY`): capturar un hold caducado → `authorization_expired`.
 - **Autorización vs captura:** en el checkout se autoriza (fondos retenidos); la captura (cobro real)
   ocurre al "enviar el pedido". El momento de cobro es una **propiedad del método**
   (`PaymentMethod.capturesImmediately`): tarjeta difiere la captura; wallets cobran en un paso y

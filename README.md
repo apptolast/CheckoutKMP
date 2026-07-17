@@ -133,6 +133,12 @@ Material3 claro/oscuro + set de iconos propio) verificado en emulador en los cua
     `canRefundToOrigin`): el medio de pago condiciona el negocio post-venta, no solo el cobro (el
     detalle real de Zara: sin cambio de talla si pagaste con PayPal/Bizum). El recibo muestra la
     elegibilidad y el botón de reembolso solo existe si el método admite reembolso al origen.
+13. ✅ **Void de autorizaciones** — cancelar el pedido antes del envío **libera la retención sin
+    cobrar** (`Authorized → Voided`): un void no es un reembolso (el reembolso devuelve un cargo;
+    el void suelta dinero solo reservado). `VoidAuthorizationUseCase` con su propia idempotencia;
+    un hold anulado no se puede capturar ni reembolsar, y un cargo capturado no se puede anular.
+    Además, **la retención caduca**: pasada la ventana de validez del PSP (7 días simulados), la
+    captura se rechaza (`authorization_expired`) y el hold queda liberado — como en las redes reales.
 
 ## Máquina de estados del pago
 
@@ -152,8 +158,10 @@ stateDiagram-v2
     Failed --> Processing: reintentar (solo transitorios, misma IdempotencyKey)
     Failed --> Idle: empezar de nuevo
     Authorized --> Captured: captura (envío del pedido, clave propia)
+    Authorized --> Voided: void (pedido cancelado / hold caducado)
     Captured --> Refunded: reembolso (clave propia)
     Refunded --> [*]
+    Voided --> [*]
 ```
 
 \* Los errores **transitorios** (`Network` / `Timeout` / `RateLimited`) se reintentan automáticamente
