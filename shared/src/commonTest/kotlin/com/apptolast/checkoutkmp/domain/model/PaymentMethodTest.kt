@@ -30,4 +30,16 @@ class PaymentMethodTest {
     fun gift_cards_capture_immediately() {
         assertTrue(PaymentMethod.GiftCard("GIFT25").capturesImmediately)
     }
+
+    @Test
+    fun only_wallets_require_a_redirect() {
+        assertFalse(Fixtures.method.requiresRedirect)
+        assertFalse(PaymentMethod.GiftCard("GIFT25").requiresRedirect)
+        PaymentMethod.Wallet.Provider.entries.forEach { provider ->
+            assertTrue(
+                PaymentMethod.Wallet(provider).requiresRedirect,
+                "${provider.displayName} should approve on the provider's page",
+            )
+        }
+    }
 }
