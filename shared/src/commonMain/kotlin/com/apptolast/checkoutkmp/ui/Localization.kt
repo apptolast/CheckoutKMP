@@ -16,7 +16,8 @@ interface Strings {
     val checkout: String
     val orderTotal: String
     val securePaymentDemo: String
-    val testScenarioDemo: String
+    val testScenario: String
+    val demoTag: String
     val paymentMethod: String
     val creditDebitCard: String
     val processingPayment: String
@@ -154,7 +155,8 @@ object EnStrings : Strings {
     override val checkout = "Checkout"
     override val orderTotal = "Order total"
     override val securePaymentDemo = "Secure payment · demo"
-    override val testScenarioDemo = "Test scenario (demo)"
+    override val testScenario = "Test scenario"
+    override val demoTag = "DEMO"
     override val paymentMethod = "Payment method"
     override val creditDebitCard = "Credit / debit card"
     override val processingPayment = "Processing payment…"
@@ -275,7 +277,8 @@ object EsStrings : Strings {
     override val checkout = "Pago"
     override val orderTotal = "Total del pedido"
     override val securePaymentDemo = "Pago seguro · demo"
-    override val testScenarioDemo = "Escenario de prueba (demo)"
+    override val testScenario = "Escenario de prueba"
+    override val demoTag = "DEMO"
     override val paymentMethod = "Método de pago"
     override val creditDebitCard = "Tarjeta de crédito / débito"
     override val processingPayment = "Procesando pago…"

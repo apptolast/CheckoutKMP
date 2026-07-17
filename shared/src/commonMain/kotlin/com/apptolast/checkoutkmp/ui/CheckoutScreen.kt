@@ -270,13 +270,11 @@ private fun StatusContent(
 
         else -> {
             BrandHeader(state)
-            DemoSurface {
-                ScenarioSelector(
-                    selected = state.scenario,
-                    enabled = !state.isProcessing,
-                    onSelect = { onIntent(CheckoutIntent.SelectScenario(it)) },
-                )
-            }
+            ScenarioSelector(
+                selected = state.scenario,
+                enabled = !state.isProcessing,
+                onSelect = { onIntent(CheckoutIntent.SelectScenario(it)) },
+            )
             MethodSelector(
                 selected = state.method,
                 enabled = !state.isProcessing,
@@ -407,8 +405,10 @@ private fun ScenarioSelector(
     onSelect: (PaymentScenario) -> Unit,
 ) {
     val strings = LocalStrings.current
+    // Same structure as the Payment method / Gift card sections: a flush heading (here with a DEMO
+    // tag marking the test rig instead of a tonal box) and a trailing divider — one consistent rhythm.
     Column {
-        SectionHeading(CheckoutIcons.Bolt, strings.testScenarioDemo)
+        SectionHeading(CheckoutIcons.Bolt, strings.testScenario) { DemoBadge() }
         Spacer(Modifier.height(Dimens.spacingSmall))
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
@@ -436,7 +436,22 @@ private fun ScenarioSelector(
                 )
             }
         }
+        HorizontalDivider(modifier = Modifier.padding(top = Dimens.spacingMedium))
     }
+}
+
+/** Small tonal "DEMO" tag next to a heading, marking a section as test-rig rather than product. */
+@Composable
+private fun DemoBadge() {
+    Text(
+        text = LocalStrings.current.demoTag,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .clip(RoundedCornerShape(Dimens.cornerMedium))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = Dimens.spacingSmall, vertical = Dimens.spacingXSmall),
+    )
 }
 
 @Composable
@@ -600,9 +615,13 @@ private fun GiftCardSection(
     }
 }
 
-/** A titled section heading with a leading brand-tinted icon. */
+/** A titled section heading with a leading brand-tinted icon and an optional [trailing] slot. */
 @Composable
-private fun SectionHeading(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+private fun SectionHeading(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    trailing: (@Composable () -> Unit)? = null,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
@@ -615,6 +634,7 @@ private fun SectionHeading(icon: androidx.compose.ui.graphics.vector.ImageVector
             modifier = Modifier.size(Dimens.iconSmall),
         )
         Text(text, style = MaterialTheme.typography.titleMedium)
+        trailing?.invoke()
     }
 }
 
