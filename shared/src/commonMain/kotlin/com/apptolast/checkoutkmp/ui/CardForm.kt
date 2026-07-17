@@ -224,7 +224,12 @@ private fun CardBrandSupportingText(brand: CardBrand, pan: String) {
     val hasLast4 = pan.length >= CardRules.LAST4_LENGTH
     val last4 = pan.takeLast(CardRules.LAST4_LENGTH)
     val label = brandLabel(brand)
-    val visual = if (hasLast4) "$label · •••• $last4" else label
+    // Until a brand is detected, stay blank instead of echoing the field's own "Card" label.
+    val visual = when {
+        hasLast4 -> "$label · •••• $last4"
+        brand == CardBrand.UNKNOWN -> ""
+        else -> label
+    }
     val spoken = if (hasLast4) strings.cardEndingIn(label, last4) else strings.brandCard(label)
     key(visual) {
         Text(visual, modifier = Modifier.semantics { contentDescription = spoken })

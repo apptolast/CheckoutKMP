@@ -2,31 +2,20 @@ package com.apptolast.checkoutkmp.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.apptolast.checkoutkmp.domain.model.RedirectChallenge
@@ -62,25 +51,7 @@ fun RedirectApprovalScreen(
     }
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
-            modifier = Modifier.semantics(mergeDescendants = true) {
-                heading()
-                liveRegion = LiveRegionMode.Polite
-            },
-        ) {
-            Icon(
-                CheckoutIcons.Lock,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(Dimens.iconMedium),
-            )
-            Text(
-                strings.continueAt(challenge.provider),
-                style = MaterialTheme.typography.headlineSmall,
-            )
-        }
+        ScreenHeading(CheckoutIcons.Lock, strings.continueAt(challenge.provider))
         Text(strings.redirectWebhookNote, style = MaterialTheme.typography.bodyMedium)
 
         // Demo rig: the fake provider URL and the simulated returns live together on the tonal
@@ -96,31 +67,24 @@ fun RedirectApprovalScreen(
                 },
             )
             Spacer(Modifier.height(Dimens.spacingMedium))
-            Button(
+            BusyButton(
+                label = strings.approveSimulated,
+                icon = CheckoutIcons.CheckCircle,
+                isBusy = confirmingReturn == RedirectReturn.APPROVED,
+                enabled = !isConfirming,
                 onClick = { submit(RedirectReturn.APPROVED) },
-                enabled = !isConfirming,
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                ConfirmLeadingSlot(
-                    confirming = confirmingReturn == RedirectReturn.APPROVED,
-                    icon = CheckoutIcons.CheckCircle,
-                )
-                Spacer(Modifier.width(Dimens.spacingSmall))
-                Text(strings.approveSimulated)
-            }
+            )
             Spacer(Modifier.height(Dimens.spacingSmall))
-            OutlinedButton(
-                onClick = { submit(RedirectReturn.FAILED) },
+            BusyButton(
+                label = strings.simulateProviderFailure,
+                icon = CheckoutIcons.ErrorOutline,
+                isBusy = confirmingReturn == RedirectReturn.FAILED,
                 enabled = !isConfirming,
+                primary = false,
+                onClick = { submit(RedirectReturn.FAILED) },
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                ConfirmLeadingSlot(
-                    confirming = confirmingReturn == RedirectReturn.FAILED,
-                    icon = CheckoutIcons.ErrorOutline,
-                )
-                Spacer(Modifier.width(Dimens.spacingSmall))
-                Text(strings.simulateProviderFailure)
-            }
+            )
         }
 
         // Always-present slot (empty when idle) so the announcement never shifts the buttons.
@@ -131,36 +95,13 @@ fun RedirectApprovalScreen(
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         )
 
-        OutlinedButton(
-            onClick = { submit(RedirectReturn.CANCELLED) },
+        BusyButton(
+            label = strings.cancel,
+            isBusy = confirmingReturn == RedirectReturn.CANCELLED,
             enabled = !isConfirming,
+            primary = false,
+            onClick = { submit(RedirectReturn.CANCELLED) },
             modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (confirmingReturn == RedirectReturn.CANCELLED) {
-                InButtonSpinner()
-                Spacer(Modifier.width(Dimens.spacingSmall))
-            }
-            Text(strings.cancel)
-        }
+        )
     }
-}
-
-/** A button's leading icon, swapped in place for the confirm spinner: same footprint, no jump. */
-@Composable
-private fun ConfirmLeadingSlot(confirming: Boolean, icon: ImageVector) {
-    if (confirming) {
-        InButtonSpinner()
-    } else {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
-    }
-}
-
-/** House-standard in-button progress: content-colored, thin stroke, leading-icon sized. */
-@Composable
-private fun InButtonSpinner() {
-    CircularProgressIndicator(
-        color = LocalContentColor.current,
-        strokeWidth = Dimens.progressStrokeThin,
-        modifier = Modifier.size(Dimens.iconSmall),
-    )
 }

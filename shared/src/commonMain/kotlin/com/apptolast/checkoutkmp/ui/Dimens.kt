@@ -41,6 +41,13 @@ object Dimens {
     /** Tinted circle behind the terminal status icon. */
     val statusBadgeSize = 88.dp
 
+    /** Muted icon that headlines an empty state (e.g. the empty order history). */
+    val emptyStateIconSize = 64.dp
+
+    /** Height of a text field's input box, so a sibling button can align to it, not to the field
+     *  plus its supporting text. */
+    val fieldHeight = 56.dp
+
     /** Corner radius for inset tonal containers (demo surfaces). */
     val cornerMedium = 12.dp
 

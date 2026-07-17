@@ -1,6 +1,7 @@
 package com.apptolast.checkoutkmp.ui
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
@@ -116,6 +117,24 @@ object CheckoutIcons {
         }
     }
 
+    /** Stylized "P" letter mark for the PayPal wallet — one bowl over a stem (even-odd counter). */
+    val BrandPaypal: ImageVector by lazy {
+        letterIcon("BrandPaypal") {
+            "M7 6H12.7C15.1 6 16.8 7.7 16.8 10C16.8 12.3 15.1 14 12.7 14H9.4V18H7V6Z" +
+                "M9.4 8.2H12.4C13.7 8.2 14.5 8.9 14.5 10C14.5 11.1 13.7 11.8 12.4 11.8H9.4V8.2Z"
+        }
+    }
+
+    /** Stylized "B" letter mark for the Bizum wallet — two stacked bowls (even-odd counters). */
+    val BrandBizum: ImageVector by lazy {
+        letterIcon("BrandBizum") {
+            "M7 6H12.6C14.5 6 15.9 7.3 15.9 9C15.9 10.1 15.3 11 14.4 11.5C15.6 11.9 16.4 12.9 " +
+                "16.4 14.2C16.4 16.1 14.9 18 12.7 18H7V6Z" +
+                "M9.3 8V10.7H12.2C13.1 10.7 13.6 10.1 13.6 9.3C13.6 8.5 13.1 8 12.2 8H9.3Z" +
+                "M9.3 12.6V16H12.4C13.4 16 14 15.3 14 14.3C14 13.3 13.4 12.6 12.4 12.6H9.3Z"
+        }
+    }
+
     /** Clock with a rewind arrow — opens the session's order history. */
     val History: ImageVector by lazy {
         icon("History") {
@@ -136,6 +155,16 @@ object CheckoutIcons {
 
 /** Builds a 24dp icon from a single SVG path string, filled black for tinting by `Icon`. */
 private fun icon(name: String, pathData: () -> String): ImageVector =
+    buildIcon(name, PathFillType.NonZero, pathData)
+
+/**
+ * Same as [icon] but with even-odd fill, so a glyph's inner subpaths punch out counters (the hole in
+ * a "P", the two bowls of a "B") regardless of their winding direction.
+ */
+private fun letterIcon(name: String, pathData: () -> String): ImageVector =
+    buildIcon(name, PathFillType.EvenOdd, pathData)
+
+private fun buildIcon(name: String, fillType: PathFillType, pathData: () -> String): ImageVector =
     ImageVector.Builder(
         name = name,
         defaultWidth = 24.dp,
@@ -146,5 +175,6 @@ private fun icon(name: String, pathData: () -> String): ImageVector =
         addPath(
             pathData = PathParser().parsePathString(pathData()).toNodes(),
             fill = SolidColor(Color.Black),
+            pathFillType = fillType,
         )
     }.build()

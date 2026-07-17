@@ -1,12 +1,13 @@
 package com.apptolast.checkoutkmp.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -84,10 +85,18 @@ fun HistoryScreen(
     val strings = LocalStrings.current
     Scaffold(topBar = { HistoryTopBar(title = strings.orderHistory, onBack = onBack) }) { padding ->
         if (orders.isEmpty()) {
-            Box(
+            Column(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(Dimens.spacingXLarge),
-                contentAlignment = Alignment.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
+                Icon(
+                    CheckoutIcons.Receipt,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outlineVariant,
+                    modifier = Modifier.size(Dimens.emptyStateIconSize),
+                )
+                Spacer(Modifier.height(Dimens.spacingLarge))
                 Text(
                     strings.emptyHistory,
                     style = MaterialTheme.typography.bodyLarge,
@@ -216,7 +225,7 @@ private fun OrderRow(order: Receipt, onClick: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(Dimens.spacingLarge),
         ) {
             Icon(
-                methodIcon(order.method),
+                paymentMethodIcon(order.method),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(Dimens.iconMedium),
@@ -239,12 +248,6 @@ private fun OrderRow(order: Receipt, onClick: () -> Unit) {
             }
         }
     }
-}
-
-@Composable
-private fun methodIcon(method: PaymentMethod) = when (method) {
-    is PaymentMethod.Card, is PaymentMethod.Wallet -> CheckoutIcons.CreditCard
-    is PaymentMethod.GiftCard -> CheckoutIcons.Receipt
 }
 
 @Composable

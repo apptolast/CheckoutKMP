@@ -5,17 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -38,7 +32,6 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.contentType
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -89,25 +82,7 @@ fun ScaChallengeScreen(
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
-            modifier = Modifier.semantics(mergeDescendants = true) {
-                heading()
-                liveRegion = LiveRegionMode.Polite
-            },
-        ) {
-            Icon(
-                CheckoutIcons.VerifiedUser,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(Dimens.iconMedium),
-            )
-            Text(
-                strings.threeDSecureVerification,
-                style = MaterialTheme.typography.headlineSmall,
-            )
-        }
+        ScreenHeading(CheckoutIcons.VerifiedUser, strings.threeDSecureVerification)
         Text(
             strings.enterCodeSentTo(challenge.otpLength, deliveryTarget),
             style = MaterialTheme.typography.bodyMedium,
@@ -211,24 +186,14 @@ fun ScaChallengeScreen(
             )
         }
 
-        Button(
-            onClick = { onVerify(otp) },
+        BusyButton(
+            label = strings.verify,
+            icon = CheckoutIcons.VerifiedUser,
+            isBusy = isVerifying,
             enabled = !isVerifying && otp.length == challenge.otpLength,
+            onClick = { onVerify(otp) },
             modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (isVerifying) {
-                // Progress replaces the icon in place: same footprint, no layout jump.
-                CircularProgressIndicator(
-                    color = LocalContentColor.current,
-                    strokeWidth = Dimens.progressStrokeThin,
-                    modifier = Modifier.size(Dimens.iconSmall),
-                )
-            } else {
-                Icon(CheckoutIcons.VerifiedUser, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
-            }
-            Spacer(Modifier.width(Dimens.spacingSmall))
-            Text(strings.verify)
-        }
+        )
         OutlinedButton(
             onClick = onCancel,
             enabled = !isVerifying,

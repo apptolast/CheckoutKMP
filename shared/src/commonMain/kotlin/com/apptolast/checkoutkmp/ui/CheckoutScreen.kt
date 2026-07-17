@@ -8,18 +8,20 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
@@ -27,7 +29,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,7 +37,6 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -153,38 +153,68 @@ fun CheckoutScreen(
             )
         },
     ) { padding ->
-        Column(
-            // imePadding before verticalScroll so the scroll viewport shrinks above the keyboard,
-            // keeping the Pay button and status line reachable while typing.
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Dimens.spacingXLarge, vertical = Dimens.spacingLarge),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        // One scroll state for every phase; reset to the top when the phase changes so a receipt or
+        // challenge never arrives inheriting the form's scroll offset (which used to clip the badge).
+        val scrollState = rememberScrollState()
+        LaunchedEffect(phaseKey(state.status)) { scrollState.scrollTo(0) }
+        BoxWithConstraints(
+            // imePadding here so the measured viewport shrinks above the keyboard, keeping the Pay
+            // button and status line reachable while typing.
+            modifier = Modifier.fillMaxSize().padding(padding).imePadding(),
         ) {
-            AnimatedContent(
-                targetState = state.status,
-                // Key by phase, not by instance: sub-state flips inside one phase (isVerifying,
-                // isCapturing, otpError…) update in place instead of re-running the transition.
-                contentKey = { phaseKey(it) },
-                transitionSpec = {
-                    (fadeIn() + slideInVertically { it / ENTER_SLIDE_FRACTION }) togetherWith fadeOut()
-                },
-                // Cap the content width so tablet/desktop layouts read as a centered checkout
-                // column instead of edge-to-edge stretched fields.
-                modifier = Modifier.widthIn(max = Dimens.contentMaxWidth).fillMaxWidth(),
-            ) { animatedStatus ->
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(Dimens.spacingXLarge),
-                ) {
-                    StatusContent(animatedStatus, state, onIntent)
+            // Height available for content once the screen's own vertical padding is removed; the
+            // focused steps fill it so they center vertically instead of hugging the app bar.
+            val focusedMinHeight = maxHeight - Dimens.spacingLarge * 2
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = Dimens.spacingXLarge, vertical = Dimens.spacingLarge),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                AnimatedContent(
+                    targetState = state.status,
+                    // Key by phase, not by instance: sub-state flips inside one phase (isVerifying,
+                    // isCapturing, otpError…) update in place instead of re-running the transition.
+                    contentKey = { phaseKey(it) },
+                    transitionSpec = {
+                        (fadeIn() + slideInVertically { it / ENTER_SLIDE_FRACTION }) togetherWith fadeOut()
+                    },
+                    // Cap the content width so tablet/desktop layouts read as a centered checkout
+                    // column instead of edge-to-edge stretched fields.
+                    modifier = Modifier.widthIn(max = Dimens.contentMaxWidth).fillMaxWidth(),
+                ) { animatedStatus ->
+                    val centered = isCenteredPhase(animatedStatus)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(if (centered) Modifier.heightIn(min = focusedMinHeight) else Modifier),
+                        verticalArrangement = if (centered) {
+                            Arrangement.spacedBy(Dimens.spacingXLarge, Alignment.CenterVertically)
+                        } else {
+                            Arrangement.spacedBy(Dimens.spacingXLarge)
+                        },
+                    ) {
+                        StatusContent(animatedStatus, state, onIntent)
+                    }
                 }
             }
         }
     }
+}
+
+/**
+ * Single-task steps (3D Secure, provider redirect, terminal failure) are short, so they center in
+ * the viewport instead of clinging to the top with a large void below. The form and the receipts
+ * carry enough content to stay top-aligned and scroll.
+ */
+private fun isCenteredPhase(status: CheckoutStatus): Boolean = when (status) {
+    is CheckoutStatus.RequiresSca,
+    is CheckoutStatus.RequiresRedirect,
+    is CheckoutStatus.Failed,
+    -> true
+
+    else -> false
 }
 
 /** Stable per-screen discriminator for [AnimatedContent]; editing and processing share the form. */
@@ -369,7 +399,7 @@ private fun BrandHeader(state: CheckoutState) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun ScenarioSelector(
     selected: PaymentScenario,
@@ -380,9 +410,10 @@ private fun ScenarioSelector(
     Column {
         SectionHeading(CheckoutIcons.Bolt, strings.testScenarioDemo)
         Spacer(Modifier.height(Dimens.spacingSmall))
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
         ) {
             PaymentScenario.entries.forEach { scenario ->
                 val isSelected = scenario == selected
@@ -435,7 +466,7 @@ private fun MethodSelector(
                 // one focusable radio per option instead of two nested clickables.
                 RadioButton(selected = option == selected, enabled = enabled, onClick = null)
                 Icon(
-                    CheckoutIcons.CreditCard,
+                    methodOptionIcon(option),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(Dimens.iconMedium),
@@ -469,7 +500,9 @@ private fun GiftCardSection(
             val fieldEnabled = enabled && !state.isApplyingGiftCard
             val apply = { if (code.isNotBlank()) onIntent(CheckoutIntent.ApplyGiftCard(code)) }
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                // Top-align so the Apply button lines up with the field's input box, not with the
+                // taller field-plus-supporting-text block.
+                verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -512,21 +545,15 @@ private fun GiftCardSection(
                     keyboardActions = KeyboardActions(onDone = { apply() }),
                     modifier = Modifier.weight(1f),
                 )
-                Button(
-                    onClick = apply,
+                // Align to the field's input box and give it the same busy-spinner standard as the
+                // other actions. Not full-width: it sits beside the field.
+                BusyButton(
+                    label = strings.apply,
+                    isBusy = state.isApplyingGiftCard,
                     enabled = fieldEnabled && code.isNotBlank(),
-                ) {
-                    if (state.isApplyingGiftCard) {
-                        // In-button progress, same standard as the SCA Verify button: no layout jump.
-                        CircularProgressIndicator(
-                            color = LocalContentColor.current,
-                            strokeWidth = Dimens.progressStrokeThin,
-                            modifier = Modifier.size(Dimens.iconSmall),
-                        )
-                        Spacer(Modifier.width(Dimens.spacingSmall))
-                    }
-                    Text(strings.apply)
-                }
+                    onClick = apply,
+                    modifier = Modifier.height(Dimens.fieldHeight),
+                )
             }
         } else {
             Row(
@@ -694,7 +721,9 @@ private fun FailureView(
         StatusBadge(
             icon = CheckoutIcons.ErrorOutline,
             containerColor = MaterialTheme.colorScheme.errorContainer,
-            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            // The error red (not the muted on-container) so the icon carries the same alarm as the
+            // headline below it.
+            contentColor = MaterialTheme.colorScheme.error,
         )
         Text(
             strings.paymentFailed,
@@ -915,23 +944,15 @@ private fun SettlementAction(
     } else {
         Text("", style = MaterialTheme.typography.bodyMedium)
     }
-    val content: @Composable () -> Unit = {
-        if (isBusy) {
-            // House-standard in-button progress: content-colored, thin stroke, icon-sized.
-            CircularProgressIndicator(
-                color = LocalContentColor.current,
-                strokeWidth = Dimens.progressStrokeThin,
-                modifier = Modifier.size(Dimens.iconSmall),
-            )
-            Spacer(Modifier.width(Dimens.spacingSmall))
-        }
-        Text(if (isBusy) busyLabel else label)
-    }
-    if (primary) {
-        Button(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth()) { content() }
-    } else {
-        OutlinedButton(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth()) { content() }
-    }
+    BusyButton(
+        label = label,
+        busyLabel = busyLabel,
+        isBusy = isBusy,
+        enabled = enabled,
+        primary = primary,
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 /** The itemised receipt card: tenders (method + gift card), auth code and payment id.
@@ -978,7 +999,7 @@ internal fun ReceiptDetails(receipt: Receipt) {
                 }
 
                 is PaymentMethod.Wallet -> ReceiptRow(
-                    icon = CheckoutIcons.CreditCard,
+                    icon = walletIcon(method.provider),
                     label = strings.paymentMethod,
                     value = method.label,
                 )
