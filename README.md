@@ -200,6 +200,11 @@ con la **misma** `IdempotencyKey`.
   `Declined` ni `InvalidCard`, y siempre con la **misma** `IdempotencyKey`.
 - **3D Secure / SCA:** máquina de estados que modela el challenge y su resolución (éxito/fallo/cancelación).
 - **Validación de tarjeta:** algoritmo de **Luhn** y control de caducidad, testeados en `commonTest`.
+- **Detección de marca:** `CardBrand.detect` clasifica la tarjeta por su prefijo **IIN/BIN**
+  (Visa, Mastercard —incluida la serie `2221–2720`—, American Express y Discover; el resto cae en
+  `UNKNOWN`). Los rangos viven como constantes con nombre, no como literales sueltos. El formulario
+  refleja la marca en vivo: la marca solo aflora como icono y máscara (`•••• 4242`), **nunca el PAN**.
+  Cubierto por `CardBrandTest` y verificado en emulador.
 - **Lógica compartida y testeada:** casos de uso puros, independientes de Android, verificables con Turbine.
   **~180 tests** entre `commonTest` (dominio + data) y los tests JVM de la app (ViewModel + DI).
 - **Accesibilidad de verdad:** anuncios de errores/resultado (`liveRegion`), descripciones de contenido
