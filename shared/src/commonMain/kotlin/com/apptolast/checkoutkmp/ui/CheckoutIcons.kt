@@ -90,7 +90,8 @@ object CheckoutIcons {
     /** Stylized "V" letter mark shown while a Visa number is being typed. */
     val BrandVisa: ImageVector by lazy {
         icon("BrandVisa") {
-            "M6.5 6h2.3l3.2 9.7L15.2 6h2.3l-4.1 12h-2.8L6.5 6z"
+            // Flat-based V with wide arms so the letterform keeps weight at field-icon sizes.
+            "M7.1 6.4L9.9 6.4 12.1 13.6 14.6 6.4 17.5 6.4 13.5 17.6 10.7 17.6z"
         }
     }
 
