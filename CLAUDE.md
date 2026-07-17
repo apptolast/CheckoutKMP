@@ -32,15 +32,18 @@ e iOS son hosts finos.
   di/            initKoin() común + presentationModule
   domain/
     model/        Amount, Currency, PaymentMethod, CardToken, IdempotencyKey, CardRules,
-                  PaymentRequest, Receipt, PaymentError, PaymentState
+                  PaymentRequest, Receipt, PaymentError, PaymentState, GiftCard + SplitPlan
     usecase/      ProcessPaymentUseCase, CompleteScaUseCase, CapturePaymentUseCase,
-                  RefundPaymentUseCase, Luhn, caducidad
+                  RefundPaymentUseCase, ProcessSplitPaymentUseCase (saga + compensación),
+                  ApplyGiftCardUseCase, ReverseGiftCardRedemptionUseCase, Luhn, caducidad
     repository/   contrato PaymentRepository
+    giftcard/     contrato GiftCardService (lookup/redeem/reverse + resultados)
     tokenizer/    contrato CardTokenizer (+ RawCard, TokenizationResult)
     simulation/   PaymentScenario + PaymentSimulator (seam de demo)
   data/
     psp/          FakePsp (implementa Psp + PaymentSimulator), PspErrorMapper
     repository/   PaymentRepositoryImpl + RetryingPaymentRepository (backoff, solo transitorios)
+    giftcard/     FakeGiftCardStore (saldos + ledger de redenciones/reversas)
     tokenizer/    FakeCardTokenizer (PCI-safe)
     di/           dataModule
 
@@ -73,8 +76,13 @@ iosApp        host fino: ComposeView monta MainViewControllerKt.MainViewControll
 ## Dominio de pagos: invariantes
 
 - **IdempotencyKey** (`kotlin.uuid.Uuid`): un intento = una clave, **por operación** (autorización,
-  captura y reembolso llevan cada una la suya). Reintentar un transitorio **reutiliza la misma clave**
-  para no cobrar/capturar/reembolsar dos veces. El `FakePsp` cachea por clave y operación.
+  captura, reembolso, redención y reversa de tarjeta regalo llevan cada una la suya). Reintentar un
+  transitorio **reutiliza la misma clave** para no ejecutar nada dos veces. `FakePsp` y
+  `FakeGiftCardStore` cachean por clave y operación.
+- **Split payment (tarjeta regalo):** la gift card se aplica **primero** (`planSplit`, tope en saldo);
+  la tarjeta cobra solo el restante. Si cubre el total → sin tarjeta y **sin 3DS**. Fallo parcial
+  (tarjeta rechazada tras redimir) → **compensación**: se revierte la redención. Transitorios NO
+  compensan (la saga se reejecuta con las mismas claves). Reembolso = cada tender a su origen.
 - **Autorización vs captura:** en el checkout se autoriza (fondos retenidos); la captura (cobro real)
   ocurre al "enviar el pedido". El momento de cobro es una **propiedad del método**
   (`PaymentMethod.capturesImmediately`): tarjeta difiere la captura; wallets cobran en un paso y

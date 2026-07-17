@@ -116,7 +116,13 @@ Material3 claro/oscuro + set de iconos propio) verificado en emulador en los cua
    (`capturesImmediately`: tarjeta difiere la captura, wallets cobran en un paso y nunca pasan por
    `Authorized`). El recibo distingue "Autorizado (se cobrará al enviar)" de "Cobrado", con botones
    demo de envío del pedido y reembolso.
-10. ⬜ **Tarjeta regalo y pago parcial** (split payment con compensación).
+10. ✅ **Tarjeta regalo y pago parcial** — split tender estilo Zara: la tarjeta regalo se aplica
+    **primero** (`planSplit`, tope en su saldo) y la tarjeta bancaria solo cobra el **restante**; si
+    el saldo cubre el total, no hay tarjeta **ni 3D Secure**. `GiftCardService` (redeem/reverse,
+    idempotencia por operación) + `ProcessSplitPaymentUseCase`, una **saga con compensación**: si la
+    tarjeta es rechazada tras consumir el saldo, la redención se **revierte**; los fallos transitorios
+    no compensan (reintentar reejecuta la saga con las mismas claves y la redención se replay-a
+    idempotente). El reembolso devuelve **cada tender a su origen** (PSP + reversa del saldo).
 11. ⬜ **Métodos con redirección** (Bizum / PayPal, confirmación por webhook).
 12. ⬜ **Elegibilidad por método** (operaciones post-venta según el medio de pago).
 
