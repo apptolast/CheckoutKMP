@@ -25,4 +25,9 @@ class PaymentMethodTest {
             )
         }
     }
+
+    @Test
+    fun gift_cards_capture_immediately() {
+        assertTrue(PaymentMethod.GiftCard("GIFT25").capturesImmediately)
+    }
 }
