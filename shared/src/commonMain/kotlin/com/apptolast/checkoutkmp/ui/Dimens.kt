@@ -48,6 +48,10 @@ object Dimens {
      *  plus its supporting text. */
     val fieldHeight = 56.dp
 
+    /** Shared corner radius for interactive input surfaces (text fields, chips, OTP cells), so the
+     *  form reads as one family. Buttons deliberately stay pill-shaped (Material's default). */
+    val cornerField = 12.dp
+
     /** Corner radius for inset tonal containers (demo surfaces). */
     val cornerMedium = 12.dp
 
@@ -66,8 +70,8 @@ object Dimens {
     /** Height of one segmented OTP cell. */
     val otpCellHeight = 52.dp
 
-    /** Corner radius of a segmented OTP cell. */
-    val otpCellCorner = 8.dp
+    /** Corner radius of a segmented OTP cell — shares [cornerField] so inputs stay consistent. */
+    val otpCellCorner = cornerField
 
     /** Outline of an idle OTP cell. */
     val otpCellStroke = 1.dp

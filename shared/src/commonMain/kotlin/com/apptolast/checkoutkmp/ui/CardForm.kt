@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
@@ -97,6 +98,7 @@ fun CardForm(
                 imeAction = ImeAction.Next,
             ),
             visualTransformation = CardNumberVisualTransformation(),
+            shape = RoundedCornerShape(Dimens.cornerField),
             modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged { panTouched.onFocusChanged(it.isFocused) }
@@ -138,6 +140,7 @@ fun CardForm(
                     imeAction = ImeAction.Next,
                 ),
                 visualTransformation = ExpiryVisualTransformation(),
+                shape = RoundedCornerShape(Dimens.cornerField),
                 modifier = Modifier
                     .weight(1f)
                     .onFocusChanged { expiryTouched.onFocusChanged(it.isFocused) }
@@ -158,6 +161,7 @@ fun CardForm(
                 ),
                 // Masked on screen like any secret; it never leaves local state except via Submit.
                 visualTransformation = PasswordVisualTransformation(),
+                shape = RoundedCornerShape(Dimens.cornerField),
                 modifier = Modifier
                     .weight(1f)
                     .onFocusChanged { cvvTouched.onFocusChanged(it.isFocused) }

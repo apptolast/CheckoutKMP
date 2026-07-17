@@ -422,6 +422,8 @@ private fun ScenarioSelector(
                     enabled = enabled,
                     onClick = { onSelect(scenario) },
                     label = { Text(scenarioLabel(scenario)) },
+                    // Same soft radius as the text fields so inputs read as one family.
+                    shape = RoundedCornerShape(Dimens.cornerField),
                     leadingIcon = if (isSelected) {
                         {
                             Icon(
@@ -558,6 +560,7 @@ private fun GiftCardSection(
                         imeAction = ImeAction.Done,
                     ),
                     keyboardActions = KeyboardActions(onDone = { apply() }),
+                    shape = RoundedCornerShape(Dimens.cornerField),
                     modifier = Modifier.weight(1f),
                 )
                 // Align to the field's input box and give it the same busy-spinner standard as the
