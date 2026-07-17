@@ -14,6 +14,7 @@ import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
 class FakePaymentRepository(
     var onAuthorize: (PaymentRequest) -> PaymentResult = { error("authorize not scripted") },
     var onCompleteSca: (PaymentRequest, String) -> PaymentResult = { _, _ -> error("completeSca not scripted") },
+    var onResendSca: (PaymentRequest) -> PaymentResult = { error("resendSca not scripted") },
     var onCompleteRedirect: (PaymentRequest, RedirectReturn) -> PaymentResult = { _, _ -> error("completeRedirect not scripted") },
     var onCapture: (Receipt, IdempotencyKey) -> PaymentResult = { _, _ -> error("capture not scripted") },
     var onVoid: (Receipt, IdempotencyKey) -> PaymentResult = { _, _ -> error("void not scripted") },
@@ -22,6 +23,7 @@ class FakePaymentRepository(
 
     val authorizeCalls = mutableListOf<PaymentRequest>()
     val completeScaCalls = mutableListOf<Pair<PaymentRequest, String>>()
+    val resendScaCalls = mutableListOf<PaymentRequest>()
     val completeRedirectCalls = mutableListOf<Pair<PaymentRequest, RedirectReturn>>()
     val captureCalls = mutableListOf<Pair<Receipt, IdempotencyKey>>()
     val voidCalls = mutableListOf<Pair<Receipt, IdempotencyKey>>()
@@ -35,6 +37,11 @@ class FakePaymentRepository(
     override suspend fun completeSca(request: PaymentRequest, otp: String): PaymentResult {
         completeScaCalls += request to otp
         return onCompleteSca(request, otp)
+    }
+
+    override suspend fun resendSca(request: PaymentRequest): PaymentResult {
+        resendScaCalls += request
+        return onResendSca(request)
     }
 
     override suspend fun completeRedirect(request: PaymentRequest, returned: RedirectReturn): PaymentResult {

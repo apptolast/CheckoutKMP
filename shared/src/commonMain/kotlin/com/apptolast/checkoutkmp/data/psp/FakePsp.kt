@@ -153,6 +153,18 @@ class FakePsp(
         return settle(request.method).also { authorizations[request.idempotencyKey] = it }
     }
 
+    override suspend fun resendSca(request: PaymentRequest): PspResponse {
+        delay(latency)
+        transientKind(scenario)?.let { throw PspException(it, "Simulated $it failure") }
+
+        // Reissuing never consumes the challenge: the same pending record is returned, so the
+        // original OTP keeps working and completeSca stays untouched.
+        return when (val pending = authorizations[request.idempotencyKey]) {
+            is PspResponse.ScaRequired -> pending
+            else -> PspResponse.ScaFailed("no_pending_challenge")
+        }
+    }
+
     override suspend fun completeRedirect(request: PaymentRequest, returned: RedirectReturn): PspResponse {
         delay(latency)
         transientKind(scenario)?.let { throw PspException(it, "Simulated $it failure") }

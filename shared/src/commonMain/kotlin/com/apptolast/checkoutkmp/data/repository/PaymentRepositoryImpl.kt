@@ -34,6 +34,9 @@ class PaymentRepositoryImpl(
     override suspend fun completeSca(request: PaymentRequest, otp: String): PaymentResult =
         runCatchingPsp { psp.completeSca(request, otp).toResult(request) }
 
+    override suspend fun resendSca(request: PaymentRequest): PaymentResult =
+        runCatchingPsp { psp.resendSca(request).toResult(request) }
+
     override suspend fun completeRedirect(request: PaymentRequest, returned: RedirectReturn): PaymentResult =
         runCatchingPsp { psp.completeRedirect(request, returned).toResult(request) }
 

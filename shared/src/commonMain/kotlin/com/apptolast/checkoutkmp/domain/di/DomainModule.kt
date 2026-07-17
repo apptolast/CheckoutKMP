@@ -9,6 +9,7 @@ import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessSplitPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.RefundPaymentUseCase
+import com.apptolast.checkoutkmp.domain.usecase.ResendScaUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ReverseGiftCardRedemptionUseCase
 import com.apptolast.checkoutkmp.domain.usecase.VoidAuthorizationUseCase
 import org.koin.dsl.module
@@ -22,6 +23,7 @@ import org.koin.dsl.module
 val domainModule = module {
     factory { ProcessPaymentUseCase(get()) }
     factory { CompleteScaUseCase(get()) }
+    factory { ResendScaUseCase(get()) }
     factory { CompleteRedirectUseCase(get()) }
     factory { CapturePaymentUseCase(get()) }
     factory { VoidAuthorizationUseCase(get()) }

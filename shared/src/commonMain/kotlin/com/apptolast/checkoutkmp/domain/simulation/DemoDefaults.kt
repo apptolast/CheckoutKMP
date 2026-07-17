@@ -2,6 +2,8 @@ package com.apptolast.checkoutkmp.domain.simulation
 
 import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.Currency
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Fixed demo credentials shared by the simulated PSP and the UI hints, so the value the user is
@@ -11,6 +13,9 @@ import com.apptolast.checkoutkmp.domain.model.Currency
 object DemoDefaults {
     /** OTP accepted by the simulated 3D Secure challenge (also shown as a hint in the demo UI). */
     const val SCA_OTP = "123456"
+
+    /** Cooldown before the 3D Secure code can be re-sent (mirrors real issuer throttling). */
+    val OTP_RESEND_COOLDOWN: Duration = 30.seconds
 
     /** Demo gift card that covers only part of the demo order total. */
     const val GIFT_CARD_PARTIAL = "GIFT25"

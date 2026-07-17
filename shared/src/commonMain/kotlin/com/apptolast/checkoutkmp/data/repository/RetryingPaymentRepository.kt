@@ -41,6 +41,9 @@ class RetryingPaymentRepository(
     override suspend fun completeSca(request: PaymentRequest, otp: String): PaymentResult =
         retryTransient { delegate.completeSca(request, otp) }
 
+    override suspend fun resendSca(request: PaymentRequest): PaymentResult =
+        retryTransient { delegate.resendSca(request) }
+
     override suspend fun completeRedirect(request: PaymentRequest, returned: RedirectReturn): PaymentResult =
         retryTransient { delegate.completeRedirect(request, returned) }
 

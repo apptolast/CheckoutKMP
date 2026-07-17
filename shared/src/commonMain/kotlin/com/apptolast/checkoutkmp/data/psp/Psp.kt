@@ -17,6 +17,9 @@ interface Psp {
     /** Resolve a pending 3D Secure challenge for [request] with the user-entered [otp]. */
     suspend fun completeSca(request: PaymentRequest, otp: String): PspResponse
 
+    /** Send the OTP of the pending 3D Secure challenge for [request] again (same challenge). */
+    suspend fun resendSca(request: PaymentRequest): PspResponse
+
     /**
      * Reconcile a pending redirect after the user returns claiming [returned]. The response is
      * decided by what the provider confirmed via **webhook**, not by the claim. Idempotent on

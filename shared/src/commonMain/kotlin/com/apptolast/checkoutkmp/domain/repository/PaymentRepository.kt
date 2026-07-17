@@ -23,6 +23,12 @@ interface PaymentRepository {
     suspend fun completeSca(request: PaymentRequest, otp: String): PaymentResult
 
     /**
+     * Ask the PSP to send the OTP of the pending 3D Secure challenge for [request] again.
+     * The challenge itself is unchanged (same id, same key) — only the delivery is repeated.
+     */
+    suspend fun resendSca(request: PaymentRequest): PaymentResult
+
+    /**
      * Complete a pending redirect flow after the user comes back. [returned] is only the claim
      * carried by the return deep link — the implementation reconciles it against what the provider
      * actually confirmed to the PSP (webhook), which is the outcome that counts.
