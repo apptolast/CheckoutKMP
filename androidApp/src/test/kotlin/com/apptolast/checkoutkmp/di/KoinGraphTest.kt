@@ -2,6 +2,7 @@ package com.apptolast.checkoutkmp.di
 
 import com.apptolast.checkoutkmp.data.di.dataModule
 import com.apptolast.checkoutkmp.domain.giftcard.GiftCardService
+import com.apptolast.checkoutkmp.domain.history.OrderHistory
 import com.apptolast.checkoutkmp.domain.simulation.PaymentSimulator
 import com.apptolast.checkoutkmp.domain.tokenizer.CardTokenizer
 import com.apptolast.checkoutkmp.domain.di.domainModule
@@ -9,7 +10,9 @@ import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
 import com.apptolast.checkoutkmp.domain.usecase.ApplyGiftCardUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CapturePaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase
+import com.apptolast.checkoutkmp.domain.usecase.ObserveOrderHistoryUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
+import com.apptolast.checkoutkmp.domain.usecase.RecordOrderUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessSplitPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.RefundPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ReverseGiftCardRedemptionUseCase
@@ -41,6 +44,9 @@ class KoinGraphTest {
         assertNotNull(koin.get<VoidAuthorizationUseCase>())
         assertNotNull(koin.get<RefundPaymentUseCase>())
         assertNotNull(koin.get<GiftCardService>())
+        assertNotNull(koin.get<OrderHistory>())
+        assertNotNull(koin.get<RecordOrderUseCase>())
+        assertNotNull(koin.get<ObserveOrderHistoryUseCase>())
         assertNotNull(koin.get<ProcessSplitPaymentUseCase>())
         assertNotNull(koin.get<ApplyGiftCardUseCase>())
         assertNotNull(koin.get<ReverseGiftCardRedemptionUseCase>())
