@@ -42,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -263,10 +264,16 @@ private fun MethodSelector(
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .selectable(selected = option == selected, enabled = enabled) { onSelect(option) }
+                    .selectable(
+                        selected = option == selected,
+                        enabled = enabled,
+                        role = Role.RadioButton,
+                    ) { onSelect(option) }
                     .padding(vertical = Dimens.spacingXSmall),
             ) {
-                RadioButton(selected = option == selected, enabled = enabled, onClick = { onSelect(option) })
+                // onClick = null: the row is the single selectable target, so screen readers get
+                // one focusable radio per option instead of two nested clickables.
+                RadioButton(selected = option == selected, enabled = enabled, onClick = null)
                 Icon(
                     CheckoutIcons.CreditCard,
                     contentDescription = null,
