@@ -88,6 +88,9 @@ iosApp        host fino: ComposeView monta MainViewControllerKt.MainViewControll
   **indicio, no confirmación**: la verdad es el webhook del PSP (simulado en `FakePsp`, registrado al
   crear la orden). Retorno aprobado + webhook rechazado → `Declined`, **sin cobro**; el cobro solo
   ocurre al confirmar el webhook (y va directo a `Captured`).
+- **Elegibilidad post-venta:** `PaymentMethod.afterSales` (`AfterSalesPolicy`: `canChangeSize`,
+  `canRefundToOrigin`) — propiedad del método, nunca `if`s por proveedor. Wallets no admiten cambio
+  de talla; el botón de reembolso solo se muestra si `canRefundToOrigin`.
 - **Autorización vs captura:** en el checkout se autoriza (fondos retenidos); la captura (cobro real)
   ocurre al "enviar el pedido". El momento de cobro es una **propiedad del método**
   (`PaymentMethod.capturesImmediately`): tarjeta difiere la captura; wallets cobran en un paso y

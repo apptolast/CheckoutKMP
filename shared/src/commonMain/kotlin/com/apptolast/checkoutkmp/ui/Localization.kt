@@ -52,6 +52,12 @@ interface Strings {
     val confirmingWithProvider: String
     fun payWith(provider: String): String
 
+    // After-sales eligibility (per payment method)
+    val sizeChange: String
+    val refundToOrigin: String
+    val available: String
+    val notAvailable: String
+
     // Gift card (split payment)
     val giftCard: String
     val giftCardCode: String
@@ -140,6 +146,11 @@ object EnStrings : Strings {
     override val confirmingWithProvider = "Confirming with the provider…"
     override fun payWith(provider: String) = "Pay with $provider"
 
+    override val sizeChange = "Size change"
+    override val refundToOrigin = "Refund to original method"
+    override val available = "Available"
+    override val notAvailable = "Not available"
+
     override val giftCard = "Gift card"
     override val giftCardCode = "Gift card code"
     override val apply = "Apply"
@@ -224,6 +235,11 @@ object EsStrings : Strings {
     override val simulateProviderFailure = "Simular fallo del proveedor"
     override val confirmingWithProvider = "Confirmando con el proveedor…"
     override fun payWith(provider: String) = "Pagar con $provider"
+
+    override val sizeChange = "Cambio de talla"
+    override val refundToOrigin = "Reembolso al método original"
+    override val available = "Disponible"
+    override val notAvailable = "No disponible"
 
     override val giftCard = "Tarjeta regalo"
     override val giftCardCode = "Código de la tarjeta regalo"

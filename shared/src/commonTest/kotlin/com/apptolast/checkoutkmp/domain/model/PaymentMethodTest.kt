@@ -32,6 +32,27 @@ class PaymentMethodTest {
     }
 
     @Test
+    fun cards_and_gift_cards_admit_size_changes_but_wallets_do_not() {
+        assertTrue(Fixtures.method.afterSales.canChangeSize)
+        assertTrue(PaymentMethod.GiftCard("GIFT25").afterSales.canChangeSize)
+        PaymentMethod.Wallet.Provider.entries.forEach { provider ->
+            assertFalse(
+                PaymentMethod.Wallet(provider).afterSales.canChangeSize,
+                "a ${provider.displayName} order cannot be re-settled for a different size",
+            )
+        }
+    }
+
+    @Test
+    fun every_method_supports_refund_to_origin() {
+        assertTrue(Fixtures.method.afterSales.canRefundToOrigin)
+        assertTrue(PaymentMethod.GiftCard("GIFT25").afterSales.canRefundToOrigin)
+        PaymentMethod.Wallet.Provider.entries.forEach { provider ->
+            assertTrue(PaymentMethod.Wallet(provider).afterSales.canRefundToOrigin)
+        }
+    }
+
+    @Test
     fun only_wallets_require_a_redirect() {
         assertFalse(Fixtures.method.requiresRedirect)
         assertFalse(PaymentMethod.GiftCard("GIFT25").requiresRedirect)

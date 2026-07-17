@@ -620,13 +620,16 @@ private fun CapturedReceiptView(
         badgeContent = extraColors.success,
         onDone = { onIntent(CheckoutIntent.Reset) },
     ) {
-        SettlementAction(
-            label = strings.refund,
-            busyLabel = strings.refundingPayment,
-            isBusy = status.isRefunding,
-            error = status.refundError,
-            onClick = { onIntent(CheckoutIntent.Refund) },
-        )
+        // The refund action only exists when the method admits refund-to-origin.
+        if (status.receipt.method.afterSales.canRefundToOrigin) {
+            SettlementAction(
+                label = strings.refund,
+                busyLabel = strings.refundingPayment,
+                isBusy = status.isRefunding,
+                error = status.refundError,
+                onClick = { onIntent(CheckoutIntent.Refund) },
+            )
+        }
     }
 }
 
@@ -788,8 +791,23 @@ private fun ReceiptDetails(receipt: Receipt) {
                 label = strings.paymentId,
                 value = receipt.paymentId,
             )
+            HorizontalDivider()
+            // After-sales eligibility: the payment method conditions the business, not just the charge.
+            AfterSalesRow(label = strings.sizeChange, available = receipt.method.afterSales.canChangeSize)
+            AfterSalesRow(label = strings.refundToOrigin, available = receipt.method.afterSales.canRefundToOrigin)
         }
     }
+}
+
+/** One post-sale operation and whether the receipt's payment method admits it. */
+@Composable
+private fun AfterSalesRow(label: String, available: Boolean) {
+    val strings = LocalStrings.current
+    ReceiptRow(
+        icon = if (available) CheckoutIcons.CheckCircle else CheckoutIcons.ErrorOutline,
+        label = label,
+        value = if (available) strings.available else strings.notAvailable,
+    )
 }
 
 @Composable

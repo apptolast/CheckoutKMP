@@ -129,7 +129,10 @@ Material3 claro/oscuro + set de iconos propio) verificado en emulador en los cua
     `FakePsp` (registrado al crear la orden, invisible para el cliente). Un retorno "aprobado" cuyo
     webhook fue rechazado **falla y nunca cobra**; cancelar mapea a `Cancelled`; el cobro solo ocurre
     cuando el proveedor confirma (y directo a `Captured`, sin pasar por `Authorized`).
-12. ⬜ **Elegibilidad por método** (operaciones post-venta según el medio de pago).
+12. ✅ **Elegibilidad por método** — cada método declara su `AfterSalesPolicy` (`canChangeSize`,
+    `canRefundToOrigin`): el medio de pago condiciona el negocio post-venta, no solo el cobro (el
+    detalle real de Zara: sin cambio de talla si pagaste con PayPal/Bizum). El recibo muestra la
+    elegibilidad y el botón de reembolso solo existe si el método admite reembolso al origen.
 
 ## Máquina de estados del pago
 
