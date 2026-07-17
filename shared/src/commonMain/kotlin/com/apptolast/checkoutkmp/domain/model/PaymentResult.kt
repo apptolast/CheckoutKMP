@@ -18,7 +18,12 @@ sealed interface PaymentResult {
     /** The authorization hold was released without charging. */
     data class Voided(val receipt: Receipt) : PaymentResult
 
+    /** The PSP requires 3D Secure; the user must complete [challenge] before the payment settles. */
     data class RequiresSca(val challenge: ScaChallenge) : PaymentResult
+
+    /** The method needs approval on the provider's page; the user must complete [redirect]. */
     data class RequiresRedirect(val redirect: RedirectChallenge) : PaymentResult
+
+    /** The call did not settle; [error] is the mapped domain reason (may be transient). */
     data class Failed(val error: PaymentError) : PaymentResult
 }
