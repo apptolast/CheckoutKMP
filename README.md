@@ -107,20 +107,36 @@ lineal) tras pasar los tests. `main` siempre compila y pasa tests. **Todas las f
 duplicaciones (`CardRules`, `DemoDefaults`, `ScaChallenge`); y **rediseño de UI de marca** (tema
 Material3 claro/oscuro + set de iconos propio) verificado en emulador en los cuatro estados.
 
+**Roadmap retail e-commerce** (fases 9–12, checkout tipo moda/retail):
+
+9. ✅ **Autorización vs captura** — en retail se **autoriza** en el checkout (fondos retenidos) y se
+   **captura** al enviar el pedido. `PaymentState` separa `Authorized` / `Captured` / `Refunded`;
+   `CapturePaymentUseCase` y `RefundPaymentUseCase` puros; `FakePsp` con authorize/capture/refund,
+   **cada operación con su propia idempotencia**; el momento de cobro es una **propiedad del método**
+   (`capturesImmediately`: tarjeta difiere la captura, wallets cobran en un paso y nunca pasan por
+   `Authorized`). El recibo distingue "Autorizado (se cobrará al enviar)" de "Cobrado", con botones
+   demo de envío del pedido y reembolso.
+10. ⬜ **Tarjeta regalo y pago parcial** (split payment con compensación).
+11. ⬜ **Métodos con redirección** (Bizum / PayPal, confirmación por webhook).
+12. ⬜ **Elegibilidad por método** (operaciones post-venta según el medio de pago).
+
 ## Máquina de estados del pago
 
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
     Idle --> Processing: submit (tokeniza + autoriza)
-    Processing --> Approved: autorizado
+    Processing --> Authorized: fondos retenidos (tarjeta)
+    Processing --> Captured: cobro inmediato (wallets)
     Processing --> RequiresSca: 3D Secure requerido
     Processing --> Failed: Declined / InvalidCard / transitorio*
     RequiresSca --> Processing: enviar OTP
     RequiresSca --> Failed: cancelar (Cancelled) / ScaFailed
     Failed --> Processing: reintentar (solo transitorios, misma IdempotencyKey)
     Failed --> Idle: empezar de nuevo
-    Approved --> [*]
+    Authorized --> Captured: captura (envío del pedido, clave propia)
+    Captured --> Refunded: reembolso (clave propia)
+    Refunded --> [*]
 ```
 
 \* Los errores **transitorios** (`Network` / `Timeout` / `RateLimited`) se reintentan automáticamente
@@ -132,7 +148,10 @@ con la **misma** `IdempotencyKey`.
 - **Seguridad PCI-consciente (regla de oro):** el **PAN nunca se loguea, ni se persiste, ni aparece
   en el estado**. Solo circula el **token** y una versión **enmascarada** (p. ej. `•••• 4242`). Verificado
   con un test automatizado (`GoldenRuleTest` / `GoldenRuleStateTest`) y sin ningún logging en el código.
-- **Idempotencia:** cada intento de pago lleva una `IdempotencyKey`; reintentar no cobra dos veces.
+- **Idempotencia por operación:** autorización, captura y reembolso llevan cada uno su propia
+  `IdempotencyKey`; reintentar cualquiera de ellos no cobra (ni devuelve) dos veces.
+- **Autorización vs captura:** el cobro real se difiere al envío del pedido; los métodos de cobro
+  inmediato (wallets) lo declaran como propiedad (`capturesImmediately`) y nunca pasan por `Authorized`.
 - **Reintentos seguros:** solo se reintentan errores **transitorios** (red/timeout/rate-limit), nunca
   `Declined` ni `InvalidCard`, y siempre con la **misma** `IdempotencyKey`.
 - **3D Secure / SCA:** máquina de estados que modela el challenge y su resolución (éxito/fallo/cancelación).

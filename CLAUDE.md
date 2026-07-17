@@ -33,7 +33,8 @@ e iOS son hosts finos.
   domain/
     model/        Amount, Currency, PaymentMethod, CardToken, IdempotencyKey, CardRules,
                   PaymentRequest, Receipt, PaymentError, PaymentState
-    usecase/      ProcessPaymentUseCase, CompleteScaUseCase, Luhn, caducidad
+    usecase/      ProcessPaymentUseCase, CompleteScaUseCase, CapturePaymentUseCase,
+                  RefundPaymentUseCase, Luhn, caducidad
     repository/   contrato PaymentRepository
     tokenizer/    contrato CardTokenizer (+ RawCard, TokenizationResult)
     simulation/   PaymentScenario + PaymentSimulator (seam de demo)
@@ -71,12 +72,18 @@ iosApp        host fino: ComposeView monta MainViewControllerKt.MainViewControll
 
 ## Dominio de pagos: invariantes
 
-- **IdempotencyKey** (`kotlin.uuid.Uuid`): un intento de pago = una clave. Reintentar un transitorio
-  **reutiliza la misma clave** para no cobrar dos veces. El `FakePsp` cachea por clave.
+- **IdempotencyKey** (`kotlin.uuid.Uuid`): un intento = una clave, **por operación** (autorización,
+  captura y reembolso llevan cada una la suya). Reintentar un transitorio **reutiliza la misma clave**
+  para no cobrar/capturar/reembolsar dos veces. El `FakePsp` cachea por clave y operación.
+- **Autorización vs captura:** en el checkout se autoriza (fondos retenidos); la captura (cobro real)
+  ocurre al "enviar el pedido". El momento de cobro es una **propiedad del método**
+  (`PaymentMethod.capturesImmediately`): tarjeta difiere la captura; wallets cobran en un paso y
+  **nunca** pasan por `Authorized`.
 - **Reintentos:** `retryTransient` con backoff solo reintenta errores **transitorios**
   (`Network`, `Timeout`, `RateLimited`). **Nunca** `Declined` ni `InvalidCard`.
 - **Mapper PSP → PaymentError centralizado en el borde** (capa data). El dominio solo ve `PaymentError`.
-- **Máquina de estados** del pago: Idle → Processing → (Approved | NeedsSca → (Approved | ScaFailed | Cancelled) | Declined | Error).
+- **Máquina de estados** del pago: Idle → Processing → (Authorized | Captured | RequiresSca → … | Failed);
+  Authorized → Captured → Refunded (capture/refund son operaciones de comercio, nunca automáticas).
 
 ## Convenciones de código
 
