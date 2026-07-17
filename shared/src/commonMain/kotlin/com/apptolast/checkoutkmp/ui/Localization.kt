@@ -50,7 +50,7 @@ interface Strings {
     val approveSimulated: String
     val simulateProviderFailure: String
     val confirmingWithProvider: String
-    fun payWith(provider: String): String
+    fun payWith(provider: String, amount: String): String
     fun simulatedProviderPageLink(provider: String): String
 
     // After-sales eligibility (per payment method)
@@ -68,7 +68,7 @@ interface Strings {
     fun giftCardApplied(amount: String): String
     fun remainingToPay(amount: String): String
     val giftCardCoversTotal: String
-    val payWithGiftCard: String
+    fun payWithGiftCard(amount: String): String
     fun demoGiftCards(codes: String): String
     fun removeGiftCard(code: String): String
     fun giftCardNotUsedWith(provider: String): String
@@ -173,7 +173,7 @@ object EnStrings : Strings {
     override val approveSimulated = "Approve payment (simulated)"
     override val simulateProviderFailure = "Simulate provider failure"
     override val confirmingWithProvider = "Confirming with the provider…"
-    override fun payWith(provider: String) = "Pay with $provider"
+    override fun payWith(provider: String, amount: String) = "Pay $amount with $provider"
     override fun simulatedProviderPageLink(provider: String) =
         "Link to the simulated $provider approval page"
 
@@ -190,7 +190,7 @@ object EnStrings : Strings {
     override fun giftCardApplied(amount: String) = "Applied: −$amount"
     override fun remainingToPay(amount: String) = "Remaining to pay: $amount"
     override val giftCardCoversTotal = "The gift card covers the total — no card or 3D Secure needed."
-    override val payWithGiftCard = "Pay with gift card"
+    override fun payWithGiftCard(amount: String) = "Pay $amount with gift card"
     override fun demoGiftCards(codes: String) = "Demo codes: $codes"
     override fun removeGiftCard(code: String) = "Remove gift card $code"
     override fun giftCardNotUsedWith(provider: String) =
@@ -288,7 +288,7 @@ object EsStrings : Strings {
     override val approveSimulated = "Aprobar pago (simulado)"
     override val simulateProviderFailure = "Simular fallo del proveedor"
     override val confirmingWithProvider = "Confirmando con el proveedor…"
-    override fun payWith(provider: String) = "Pagar con $provider"
+    override fun payWith(provider: String, amount: String) = "Pagar $amount con $provider"
     override fun simulatedProviderPageLink(provider: String) =
         "Enlace a la página de aprobación simulada de $provider"
 
@@ -305,7 +305,7 @@ object EsStrings : Strings {
     override fun giftCardApplied(amount: String) = "Aplicado: −$amount"
     override fun remainingToPay(amount: String) = "Restante a pagar: $amount"
     override val giftCardCoversTotal = "La tarjeta regalo cubre el total: no hace falta tarjeta ni 3D Secure."
-    override val payWithGiftCard = "Pagar con tarjeta regalo"
+    override fun payWithGiftCard(amount: String) = "Pagar $amount con tarjeta regalo"
     override fun demoGiftCards(codes: String) = "Códigos demo: $codes"
     override fun removeGiftCard(code: String) = "Quitar la tarjeta regalo $code"
     override fun giftCardNotUsedWith(provider: String) =

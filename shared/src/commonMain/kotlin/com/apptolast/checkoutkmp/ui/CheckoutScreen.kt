@@ -247,9 +247,11 @@ private fun StatusContent(
                     onIntent = onIntent,
                 )
                 if (state.plan.coversTotal) {
-                    GiftCardOnlyPay(
+                    // Pay button for the gift-card-covers-everything path: no card form, no 3D Secure.
+                    PayCta(
+                        label = strings.payWithGiftCard(state.plan.giftCardPortion.formatWithCurrency()),
                         enabled = !state.isProcessing,
-                        onPay = { onIntent(CheckoutIntent.SubmitGiftCardOnly) },
+                        onClick = { onIntent(CheckoutIntent.SubmitGiftCardOnly) },
                     )
                 } else {
                     CardForm(
@@ -262,7 +264,8 @@ private fun StatusContent(
                 }
             } else {
                 WalletPayButton(
-                    label = strings.payWith(methodLabel(state.method)),
+                    // Wallets do not split tenders: they always charge the full order total.
+                    label = strings.payWith(methodLabel(state.method), state.amount.formatWithCurrency()),
                     enabled = !state.isProcessing,
                     onPay = { onIntent(CheckoutIntent.SubmitWallet) },
                 )
@@ -557,17 +560,6 @@ private fun GiftCardSection(
     }
 }
 
-/** Pay button for the gift-card-covers-everything path: no card form, no 3D Secure. */
-@Composable
-private fun GiftCardOnlyPay(enabled: Boolean, onPay: () -> Unit) {
-    val strings = LocalStrings.current
-    Button(onClick = onPay, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-        Icon(CheckoutIcons.Lock, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
-        Spacer(Modifier.width(Dimens.spacingSmall))
-        Text(strings.payWithGiftCard)
-    }
-}
-
 /** A titled section heading with a leading brand-tinted icon. */
 @Composable
 private fun SectionHeading(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
@@ -610,11 +602,7 @@ private fun methodLabel(option: MethodOption): String = when (option) {
 /** Pay button for redirect wallets: the approval itself happens on the provider's page. */
 @Composable
 private fun WalletPayButton(label: String, enabled: Boolean, onPay: () -> Unit) {
-    Button(onClick = onPay, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-        Icon(CheckoutIcons.Lock, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
-        Spacer(Modifier.width(Dimens.spacingSmall))
-        Text(label)
-    }
+    PayCta(label = label, enabled = enabled, onClick = onPay)
 }
 
 /**
@@ -712,11 +700,12 @@ private fun FailureView(
         Spacer(Modifier.height(Dimens.spacingSmall))
 
         if (error.isTransient) {
-            Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
-                Icon(CheckoutIcons.Refresh, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
-                Spacer(Modifier.width(Dimens.spacingSmall))
-                Text(strings.retry)
-            }
+            PayCta(
+                label = strings.retry,
+                enabled = true,
+                onClick = onRetry,
+                icon = CheckoutIcons.Refresh,
+            )
         }
         OutlinedButton(onClick = onStartOver, modifier = Modifier.fillMaxWidth()) {
             Text(strings.startOver)

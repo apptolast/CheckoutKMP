@@ -3,13 +3,10 @@ package com.apptolast.checkoutkmp.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -153,18 +150,15 @@ fun CardForm(
             )
         }
 
-        Button(
+        PayCta(
+            label = strings.pay(payAmount),
+            enabled = enabled && formValid,
             onClick = {
-                val exp = parsedExpiry ?: return@Button
+                val exp = parsedExpiry ?: return@PayCta
                 onSubmit(RawCard(pan = pan, expiry = exp, cvv = cvv))
             },
-            enabled = enabled && formValid,
-            modifier = Modifier.fillMaxWidth().padding(top = Dimens.spacingXSmall),
-        ) {
-            Icon(CheckoutIcons.Lock, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
-            Spacer(Modifier.width(Dimens.spacingSmall))
-            Text(strings.pay(payAmount))
-        }
+            modifier = Modifier.padding(top = Dimens.spacingXSmall),
+        )
     }
 }
 

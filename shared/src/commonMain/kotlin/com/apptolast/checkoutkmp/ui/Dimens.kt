@@ -23,9 +23,6 @@ object Dimens {
     /** Gap between top-level screen sections; horizontal screen padding. */
     val spacingXLarge = 20.dp
 
-    /** Generous gap around terminal (success/failure) screens. */
-    val spacingXXLarge = 32.dp
-
     /** Diameter of the inline "processing" progress indicator on the status line. */
     val inlineProgressSize = 20.dp
 
