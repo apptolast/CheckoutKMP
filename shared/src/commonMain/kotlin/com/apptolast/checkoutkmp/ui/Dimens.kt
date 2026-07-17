@@ -8,9 +8,6 @@ import androidx.compose.ui.unit.dp
  * from one place.
  */
 object Dimens {
-    /** Fine adjustment nudge (e.g. a button pushed slightly off its neighbour). */
-    val spacingTiny = 2.dp
-
     /** Extra-small gap, e.g. between a label and its value inside a card. */
     val spacingXSmall = 4.dp
 
@@ -31,6 +28,9 @@ object Dimens {
 
     /** Diameter of the inline "processing" progress indicator on the status line. */
     val inlineProgressSize = 20.dp
+
+    /** Stroke of the small spinner that swaps in for a button's leading icon while working. */
+    val progressStrokeThin = 2.dp
 
     /** Small leading icon inside text fields, chips and buttons. */
     val iconSmall = 18.dp
