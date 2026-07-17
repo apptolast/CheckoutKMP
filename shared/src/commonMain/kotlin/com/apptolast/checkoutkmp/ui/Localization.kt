@@ -84,6 +84,7 @@ interface Strings {
     val authorizedChargeNote: String
     val paymentCaptured: String
     val paymentRefunded: String
+    val refundedNote: String
     val simulateDispatch: String
     val refund: String
     val capturingPayment: String
@@ -201,6 +202,7 @@ object EnStrings : Strings {
     override val authorizedChargeNote = "You'll be charged when the order is dispatched."
     override val paymentCaptured = "Payment charged"
     override val paymentRefunded = "Payment refunded"
+    override val refundedNote = "The refund goes back to your original payment method."
     override val simulateDispatch = "Simulate order dispatch"
     override val refund = "Refund"
     override val capturingPayment = "Charging…"
@@ -315,6 +317,7 @@ object EsStrings : Strings {
     override val authorizedChargeNote = "Se cobrará al enviar el pedido."
     override val paymentCaptured = "Pago cobrado"
     override val paymentRefunded = "Pago reembolsado"
+    override val refundedNote = "El reembolso vuelve a tu método de pago original."
     override val simulateDispatch = "Simular envío del pedido"
     override val refund = "Reembolsar"
     override val capturingPayment = "Cobrando…"

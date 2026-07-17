@@ -63,6 +63,15 @@ object CheckoutIcons {
         }
     }
 
+    /** Circle with a slash — the voided receipt (order cancelled, hold released, never charged). */
+    val Block: ImageVector by lazy {
+        icon("Block") {
+            "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 " +
+                "8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63" +
+                "-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z"
+        }
+    }
+
     val CalendarMonth: ImageVector by lazy {
         icon("CalendarMonth") {
             "M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"

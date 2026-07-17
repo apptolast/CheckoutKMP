@@ -769,7 +769,7 @@ private fun VoidedReceiptView(receipt: Receipt, onIntent: (CheckoutIntent) -> Un
         receipt = receipt,
         headline = strings.paymentVoided,
         amountColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        badgeIcon = CheckoutIcons.Lock,
+        badgeIcon = CheckoutIcons.Block,
         badgeContainer = MaterialTheme.colorScheme.surfaceVariant,
         badgeContent = MaterialTheme.colorScheme.onSurfaceVariant,
         note = strings.voidedNote,
@@ -816,6 +816,7 @@ private fun RefundedReceiptView(receipt: Receipt, onIntent: (CheckoutIntent) -> 
         badgeIcon = CheckoutIcons.Refresh,
         badgeContainer = MaterialTheme.colorScheme.surfaceVariant,
         badgeContent = MaterialTheme.colorScheme.onSurfaceVariant,
+        note = LocalStrings.current.refundedNote,
         onDone = { onIntent(CheckoutIntent.Reset) },
     )
 }
@@ -900,6 +901,7 @@ private fun SettlementAction(
     enabled: Boolean = !isBusy,
     primary: Boolean = true,
 ) {
+    // Slot always present so a failed settlement appearing never shifts the receipt below it.
     if (error != null) {
         Text(
             errorMessage(error),
@@ -908,10 +910,17 @@ private fun SettlementAction(
             textAlign = TextAlign.Center,
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
         )
+    } else {
+        Text("", style = MaterialTheme.typography.bodyMedium)
     }
     val content: @Composable () -> Unit = {
         if (isBusy) {
-            CircularProgressIndicator(modifier = Modifier.size(Dimens.inlineProgressSize))
+            // House-standard in-button progress: content-colored, thin stroke, icon-sized.
+            CircularProgressIndicator(
+                color = LocalContentColor.current,
+                strokeWidth = Dimens.progressStrokeThin,
+                modifier = Modifier.size(Dimens.iconSmall),
+            )
             Spacer(Modifier.width(Dimens.spacingSmall))
         }
         Text(if (isBusy) busyLabel else label)
