@@ -5,6 +5,7 @@ import com.apptolast.checkoutkmp.domain.giftcard.GiftCardService
 import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
 import com.apptolast.checkoutkmp.domain.usecase.ApplyGiftCardUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CapturePaymentUseCase
+import com.apptolast.checkoutkmp.domain.usecase.CompleteRedirectUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessSplitPaymentUseCase
@@ -18,6 +19,7 @@ fun checkoutUseCases(
 ): CheckoutUseCases = CheckoutUseCases(
     processPayment = ProcessPaymentUseCase(repo),
     completeSca = CompleteScaUseCase(repo),
+    completeRedirect = CompleteRedirectUseCase(repo),
     capturePayment = CapturePaymentUseCase(repo),
     refundPayment = RefundPaymentUseCase(repo),
     processSplitPayment = ProcessSplitPaymentUseCase(giftCards, repo),

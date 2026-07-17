@@ -2,6 +2,7 @@ package com.apptolast.checkoutkmp.data.psp
 
 import com.apptolast.checkoutkmp.domain.model.IdempotencyKey
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
+import com.apptolast.checkoutkmp.domain.model.RedirectReturn
 
 /**
  * Low-level gateway to a Payment Service Provider. Returns **raw PSP responses** ([PspResponse])
@@ -16,6 +17,13 @@ interface Psp {
     /** Resolve a pending 3D Secure challenge for [request] with the user-entered [otp]. */
     suspend fun completeSca(request: PaymentRequest, otp: String): PspResponse
 
+    /**
+     * Reconcile a pending redirect after the user returns claiming [returned]. The response is
+     * decided by what the provider confirmed via **webhook**, not by the claim. Idempotent on
+     * [PaymentRequest.idempotencyKey].
+     */
+    suspend fun completeRedirect(request: PaymentRequest, returned: RedirectReturn): PspResponse
+
     /** Capture a previously authorized payment. Must be idempotent on [idempotencyKey]. */
     suspend fun capture(pspPaymentId: String, idempotencyKey: IdempotencyKey): PspResponse
 
@@ -27,6 +35,13 @@ interface Psp {
 sealed interface PspResponse {
     /** Funds held on the customer's card; a capture must follow to actually charge. */
     data class Authorized(val pspPaymentId: String, val authCode: String) : PspResponse
+
+    /** The order was created at the provider; the user must approve it at [url]. */
+    data class RedirectRequired(
+        val redirectId: String,
+        val url: String,
+        val returnUrl: String,
+    ) : PspResponse
 
     /** The charge is settled — either a completed capture or an immediate-capture authorization. */
     data class Captured(val pspPaymentId: String, val authCode: String) : PspResponse

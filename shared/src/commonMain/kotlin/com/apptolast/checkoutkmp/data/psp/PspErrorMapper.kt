@@ -15,8 +15,11 @@ internal object PspErrorMapper {
         PspException.Kind.RATE_LIMITED -> PaymentError.RateLimited
     }
 
-    fun mapDeclined(response: PspResponse.Declined): PaymentError =
-        PaymentError.Declined(response.code)
+    fun mapDeclined(response: PspResponse.Declined): PaymentError = when (response.code) {
+        // A redirect abandoned by the user is a cancellation, not an issuer decline.
+        "redirect_cancelled" -> PaymentError.Cancelled
+        else -> PaymentError.Declined(response.code)
+    }
 
     fun mapScaFailed(response: PspResponse.ScaFailed): PaymentError =
         PaymentError.ScaFailed(response.reason)

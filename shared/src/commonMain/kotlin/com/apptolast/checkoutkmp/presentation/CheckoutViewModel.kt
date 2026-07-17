@@ -16,6 +16,7 @@ import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.PaymentMethod
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
 import com.apptolast.checkoutkmp.domain.model.PaymentState
+import com.apptolast.checkoutkmp.domain.model.RedirectReturn
 import com.apptolast.checkoutkmp.domain.usecase.SplitPaymentEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -89,7 +90,9 @@ class CheckoutViewModel(
 
             is CheckoutIntent.Submit -> submit(intent.card)
             CheckoutIntent.SubmitGiftCardOnly -> submitGiftCardOnly()
+            CheckoutIntent.SubmitWallet -> submitWallet()
             is CheckoutIntent.SubmitOtp -> verifyOtp(intent.otp)
+            is CheckoutIntent.CompleteRedirect -> completeRedirect(intent.returned)
 
             CheckoutIntent.CancelSca -> {
                 compensateAbandonedRedemption()
@@ -166,6 +169,54 @@ class CheckoutViewModel(
 
         clearPendingWork()
         startSplit(giftCard, cardRequest = null)
+    }
+
+    /** Pay with the selected redirect wallet for the full total (wallets do not split tenders). */
+    private fun submitWallet() {
+        val provider = when (_state.value.method) {
+            MethodOption.PAYPAL -> PaymentMethod.Wallet.Provider.PAYPAL
+            MethodOption.BIZUM -> PaymentMethod.Wallet.Provider.BIZUM
+            MethodOption.CARD -> return
+        }
+        clearPendingWork()
+        val request = PaymentRequest(
+            amount = _state.value.amount,
+            method = PaymentMethod.Wallet(provider),
+            idempotencyKey = IdempotencyKey.random(),
+        )
+        pendingRequest = request
+        authorize(request)
+    }
+
+    /**
+     * The user came back from the provider claiming [returned]. The PSP reconciles the claim
+     * against its webhook record — an approved return can still fail if the provider never
+     * confirmed the payment.
+     */
+    private fun completeRedirect(returned: RedirectReturn) {
+        val request = pendingRequest ?: return
+        val current = _state.value.status as? CheckoutStatus.RequiresRedirect ?: return
+        if (current.isConfirming) return
+
+        viewModelScope.launch {
+            useCases.completeRedirect(request, returned).collect { paymentState ->
+                val newStatus = when (paymentState) {
+                    PaymentState.Idle,
+                    PaymentState.Processing -> current.copy(isConfirming = true)
+
+                    is PaymentState.Failed -> {
+                        pendingRequest = null
+                        CheckoutStatus.Failed(paymentState.error)
+                    }
+
+                    else -> {
+                        if (paymentState.isSettled) pendingRequest = null
+                        paymentState.toCheckoutStatus()
+                    }
+                }
+                _state.update { it.copy(status = newStatus) }
+            }
+        }
     }
 
     private fun startSplit(giftCard: GiftCard, cardRequest: PaymentRequest?) {
@@ -364,6 +415,9 @@ class CheckoutViewModel(
                     is PaymentState.RequiresSca ->
                         CheckoutStatus.RequiresSca(paymentState.challenge)
 
+                    is PaymentState.RequiresRedirect ->
+                        CheckoutStatus.RequiresRedirect(paymentState.redirect)
+
                     is PaymentState.Failed ->
                         if (paymentState.error is PaymentError.ScaFailed) {
                             // Keep the challenge so the user can re-enter the code.
@@ -396,6 +450,7 @@ class CheckoutViewModel(
 private fun PaymentState.toCheckoutStatus(): CheckoutStatus = when (this) {
     PaymentState.Idle, PaymentState.Processing -> CheckoutStatus.Processing
     is PaymentState.RequiresSca -> CheckoutStatus.RequiresSca(challenge)
+    is PaymentState.RequiresRedirect -> CheckoutStatus.RequiresRedirect(redirect)
     is PaymentState.Authorized -> CheckoutStatus.Authorized(receipt)
     is PaymentState.Captured -> CheckoutStatus.Captured(receipt)
     is PaymentState.Refunded -> CheckoutStatus.Refunded(receipt)

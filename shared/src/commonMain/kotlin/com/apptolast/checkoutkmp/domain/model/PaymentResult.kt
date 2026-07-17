@@ -16,5 +16,6 @@ sealed interface PaymentResult {
     data class Refunded(val receipt: Receipt) : PaymentResult
 
     data class RequiresSca(val challenge: ScaChallenge) : PaymentResult
+    data class RequiresRedirect(val redirect: RedirectChallenge) : PaymentResult
     data class Failed(val error: PaymentError) : PaymentResult
 }

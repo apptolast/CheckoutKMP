@@ -9,6 +9,8 @@ import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
 import com.apptolast.checkoutkmp.domain.model.PaymentResult
 import com.apptolast.checkoutkmp.domain.model.Receipt
+import com.apptolast.checkoutkmp.domain.model.RedirectChallenge
+import com.apptolast.checkoutkmp.domain.model.RedirectReturn
 import com.apptolast.checkoutkmp.domain.model.ScaChallenge
 import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
 import kotlinx.coroutines.CancellationException
@@ -31,6 +33,9 @@ class PaymentRepositoryImpl(
 
     override suspend fun completeSca(request: PaymentRequest, otp: String): PaymentResult =
         runCatchingPsp { psp.completeSca(request, otp).toResult(request) }
+
+    override suspend fun completeRedirect(request: PaymentRequest, returned: RedirectReturn): PaymentResult =
+        runCatchingPsp { psp.completeRedirect(request, returned).toResult(request) }
 
     override suspend fun capture(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult =
         runCatchingPsp {
@@ -65,6 +70,9 @@ class PaymentRepositoryImpl(
             PaymentResult.Captured(buildReceipt(request, pspPaymentId, authCode, capturedAt = clock.now()))
         is PspResponse.ScaRequired -> PaymentResult.RequiresSca(
             ScaChallenge(challengeId = challengeId, deliveryHint = deliveryHint, otpLength = otpLength),
+        )
+        is PspResponse.RedirectRequired -> PaymentResult.RequiresRedirect(
+            RedirectChallenge(redirectId = redirectId, url = url, returnUrl = returnUrl),
         )
         is PspResponse.Refunded -> toFailure()
         is PspResponse.Declined -> toFailure()

@@ -44,6 +44,14 @@ interface Strings {
     fun cardEndingIn(brand: String, last4: String): String
     fun brandCard(brand: String): String
 
+    // Redirect methods (PayPal / Bizum)
+    fun continueAt(provider: String): String
+    val redirectWebhookNote: String
+    val approveSimulated: String
+    val simulateProviderFailure: String
+    val confirmingWithProvider: String
+    fun payWith(provider: String): String
+
     // Gift card (split payment)
     val giftCard: String
     val giftCardCode: String
@@ -123,6 +131,15 @@ object EnStrings : Strings {
     override fun cardEndingIn(brand: String, last4: String) = "$brand, card ending in $last4"
     override fun brandCard(brand: String) = "$brand card"
 
+    override fun continueAt(provider: String) = "Continue at $provider"
+    override val redirectWebhookNote =
+        "You'll approve the payment on the provider's secure page. The final outcome is what the " +
+            "provider confirms to our payment gateway (webhook) — not your return to the app."
+    override val approveSimulated = "Approve payment (simulated)"
+    override val simulateProviderFailure = "Simulate provider failure"
+    override val confirmingWithProvider = "Confirming with the provider…"
+    override fun payWith(provider: String) = "Pay with $provider"
+
     override val giftCard = "Gift card"
     override val giftCardCode = "Gift card code"
     override val apply = "Apply"
@@ -198,6 +215,15 @@ object EsStrings : Strings {
     override val card = "Tarjeta"
     override fun cardEndingIn(brand: String, last4: String) = "$brand, tarjeta terminada en $last4"
     override fun brandCard(brand: String) = "Tarjeta $brand"
+
+    override fun continueAt(provider: String) = "Continúa en $provider"
+    override val redirectWebhookNote =
+        "Aprobarás el pago en la página segura del proveedor. El resultado final es el que el " +
+            "proveedor confirma a nuestra pasarela (webhook), no tu vuelta a la app."
+    override val approveSimulated = "Aprobar pago (simulado)"
+    override val simulateProviderFailure = "Simular fallo del proveedor"
+    override val confirmingWithProvider = "Confirmando con el proveedor…"
+    override fun payWith(provider: String) = "Pagar con $provider"
 
     override val giftCard = "Tarjeta regalo"
     override val giftCardCode = "Código de la tarjeta regalo"

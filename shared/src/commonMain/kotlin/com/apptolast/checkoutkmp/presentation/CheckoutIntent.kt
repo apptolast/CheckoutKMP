@@ -1,5 +1,6 @@
 package com.apptolast.checkoutkmp.presentation
 
+import com.apptolast.checkoutkmp.domain.model.RedirectReturn
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.tokenizer.RawCard
 
@@ -29,6 +30,15 @@ sealed interface CheckoutIntent {
 
     /** Submit the 3D Secure OTP for the pending challenge. */
     data class SubmitOtp(val otp: String) : CheckoutIntent
+
+    /** Pay with the selected redirect method (PayPal/Bizum): creates the provider order. */
+    data object SubmitWallet : CheckoutIntent
+
+    /**
+     * The user came back from the provider's page claiming [returned]. The claim is reconciled
+     * against the PSP (webhook) — it is NOT trusted as the outcome.
+     */
+    data class CompleteRedirect(val returned: RedirectReturn) : CheckoutIntent
 
     /** The user cancelled the 3D Secure challenge. */
     data object CancelSca : CheckoutIntent

@@ -4,6 +4,7 @@ import com.apptolast.checkoutkmp.domain.model.IdempotencyKey
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
 import com.apptolast.checkoutkmp.domain.model.PaymentResult
 import com.apptolast.checkoutkmp.domain.model.Receipt
+import com.apptolast.checkoutkmp.domain.model.RedirectReturn
 
 /**
  * Domain-facing contract for talking to a PSP. Implementations (data layer) own idempotency,
@@ -20,6 +21,13 @@ interface PaymentRepository {
 
     /** Complete a pending 3D Secure challenge for [request] with the user-supplied [otp]. */
     suspend fun completeSca(request: PaymentRequest, otp: String): PaymentResult
+
+    /**
+     * Complete a pending redirect flow after the user comes back. [returned] is only the claim
+     * carried by the return deep link — the implementation reconciles it against what the provider
+     * actually confirmed to the PSP (webhook), which is the outcome that counts.
+     */
+    suspend fun completeRedirect(request: PaymentRequest, returned: RedirectReturn): PaymentResult
 
     /** Capture (actually charge) a previously authorized payment. Idempotent on [idempotencyKey]. */
     suspend fun capture(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult

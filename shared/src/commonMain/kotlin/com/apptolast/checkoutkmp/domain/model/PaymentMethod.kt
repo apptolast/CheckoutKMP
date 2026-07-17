@@ -15,15 +15,24 @@ sealed interface PaymentMethod {
     /** True when the method charges at authorization time; false for authorize-then-capture. */
     val capturesImmediately: Boolean
 
+    /** True when paying requires approving on the provider's page (redirect + webhook), like
+     *  [requiresRedirect] wallets; false for methods settled in-app. A property of the method. */
+    val requiresRedirect: Boolean
+
     data class Card(val token: CardToken) : PaymentMethod {
         override val label: String get() = "${token.brand.displayName} ${token.masked}"
         override val capturesImmediately: Boolean get() = false
+        override val requiresRedirect: Boolean get() = false
     }
 
-    /** An external wallet (PayPal, Bizum). Charges in one step — there is no separate capture. */
+    /**
+     * An external wallet (PayPal, Bizum): the user approves on the provider's page (redirect) and
+     * the PSP confirms via webhook. Charges in one step — there is no separate capture.
+     */
     data class Wallet(val provider: Provider) : PaymentMethod {
         override val label: String get() = provider.displayName
         override val capturesImmediately: Boolean get() = true
+        override val requiresRedirect: Boolean get() = true
 
         enum class Provider(val displayName: String) {
             PAYPAL("PayPal"),
@@ -35,5 +44,6 @@ sealed interface PaymentMethod {
     data class GiftCard(val code: String) : PaymentMethod {
         override val label: String get() = code
         override val capturesImmediately: Boolean get() = true
+        override val requiresRedirect: Boolean get() = false
     }
 }

@@ -5,6 +5,7 @@ import com.apptolast.checkoutkmp.domain.model.IdempotencyKey
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.PaymentResult
 import com.apptolast.checkoutkmp.domain.model.Receipt
+import com.apptolast.checkoutkmp.domain.model.RedirectReturn
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.support.FixedClock
 import com.apptolast.checkoutkmp.support.Fixtures
@@ -98,9 +99,12 @@ class PaymentLifecycleTest {
 
     @Test
     fun an_immediate_capture_method_never_passes_through_authorized() = runTest {
-        val result = repo.authorize(Fixtures.request(method = Fixtures.walletMethod))
+        val request = Fixtures.request(method = Fixtures.walletMethod)
+        assertIs<PaymentResult.RequiresRedirect>(repo.authorize(request))
 
-        // A wallet payment settles inside the authorization: it is Captured from the start.
+        // Once the provider confirms, a wallet payment is Captured from the start.
+        val result = repo.completeRedirect(request, RedirectReturn.APPROVED)
+
         val receipt = assertIs<PaymentResult.Captured>(result).receipt
         assertNotNull(receipt.capturedAt)
         assertEquals(1, psp.chargeCount)
@@ -109,8 +113,10 @@ class PaymentLifecycleTest {
 
     @Test
     fun an_immediate_capture_payment_can_be_refunded() = runTest {
+        val request = Fixtures.request(method = Fixtures.walletMethod)
+        assertIs<PaymentResult.RequiresRedirect>(repo.authorize(request))
         val receipt = assertIs<PaymentResult.Captured>(
-            repo.authorize(Fixtures.request(method = Fixtures.walletMethod)),
+            repo.completeRedirect(request, RedirectReturn.APPROVED),
         ).receipt
 
         val refunded = repo.refund(receipt, IdempotencyKey.random())

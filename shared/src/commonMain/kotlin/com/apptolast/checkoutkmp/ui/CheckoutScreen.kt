@@ -132,6 +132,14 @@ fun CheckoutScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
+                is CheckoutStatus.RequiresRedirect -> RedirectApprovalScreen(
+                    provider = methodLabel(state.method),
+                    challenge = status.redirect,
+                    isConfirming = status.isConfirming,
+                    onReturn = { onIntent(CheckoutIntent.CompleteRedirect(it)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
                 is CheckoutStatus.Failed -> FailureView(
                     error = status.error,
                     onRetry = { onIntent(CheckoutIntent.Retry) },
@@ -145,28 +153,37 @@ fun CheckoutScreen(
                         enabled = !state.isProcessing,
                         onSelect = { onIntent(CheckoutIntent.SelectScenario(it)) },
                     )
-                    GiftCardSection(
-                        state = state,
+                    MethodSelector(
+                        selected = state.method,
                         enabled = !state.isProcessing,
-                        onIntent = onIntent,
+                        onSelect = { onIntent(CheckoutIntent.SelectMethod(it)) },
                     )
-                    if (state.plan.coversTotal) {
-                        GiftCardOnlyPay(
+                    if (state.method == MethodOption.CARD) {
+                        // Split tenders are a card-checkout feature; wallets pay the full total.
+                        GiftCardSection(
+                            state = state,
                             enabled = !state.isProcessing,
-                            onPay = { onIntent(CheckoutIntent.SubmitGiftCardOnly) },
+                            onIntent = onIntent,
                         )
+                        if (state.plan.coversTotal) {
+                            GiftCardOnlyPay(
+                                enabled = !state.isProcessing,
+                                onPay = { onIntent(CheckoutIntent.SubmitGiftCardOnly) },
+                            )
+                        } else {
+                            CardForm(
+                                enabled = !state.isProcessing,
+                                // With a gift card applied, the card only pays the remainder.
+                                payAmount = state.plan.remainder.formatWithCurrency(),
+                                onSubmit = { onIntent(CheckoutIntent.Submit(it)) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     } else {
-                        MethodSelector(
-                            selected = state.method,
+                        WalletPayButton(
+                            label = strings.payWith(methodLabel(state.method)),
                             enabled = !state.isProcessing,
-                            onSelect = { onIntent(CheckoutIntent.SelectMethod(it)) },
-                        )
-                        CardForm(
-                            enabled = !state.isProcessing,
-                            // With a gift card applied, the card only pays the remainder.
-                            payAmount = state.plan.remainder.formatWithCurrency(),
-                            onSubmit = { onIntent(CheckoutIntent.Submit(it)) },
-                            modifier = Modifier.fillMaxWidth(),
+                            onPay = { onIntent(CheckoutIntent.SubmitWallet) },
                         )
                     }
                     StatusLine(status)
@@ -438,6 +455,19 @@ private fun scenarioLabel(scenario: PaymentScenario): String {
 @Composable
 private fun methodLabel(option: MethodOption): String = when (option) {
     MethodOption.CARD -> LocalStrings.current.creditDebitCard
+    // Real payment brands are proper nouns and are not localized.
+    MethodOption.PAYPAL -> PaymentMethod.Wallet.Provider.PAYPAL.displayName
+    MethodOption.BIZUM -> PaymentMethod.Wallet.Provider.BIZUM.displayName
+}
+
+/** Pay button for redirect wallets: the approval itself happens on the provider's page. */
+@Composable
+private fun WalletPayButton(label: String, enabled: Boolean, onPay: () -> Unit) {
+    Button(onClick = onPay, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+        Icon(CheckoutIcons.Lock, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
+        Spacer(Modifier.width(Dimens.spacingSmall))
+        Text(label)
+    }
 }
 
 /**

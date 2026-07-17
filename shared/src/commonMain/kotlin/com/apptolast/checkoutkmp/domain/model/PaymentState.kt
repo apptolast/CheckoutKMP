@@ -8,6 +8,8 @@ package com.apptolast.checkoutkmp.domain.model
  *                    ├──► Captured      (immediate-capture methods skip Authorized)
  *                    ├──► RequiresSca ──(completeSca)──► Processing ──► Authorized / Captured
  *                    │                                              └──► Failed
+ *                    ├──► RequiresRedirect ──(completeRedirect: reconciled against the PSP's
+ *                    │                        webhook, NOT the user's return)──► Captured / Failed
  *                    └──► Failed        (Declined / InvalidCard / Network / Timeout /
  *                                        RateLimited / ScaFailed / Cancelled / Unknown)
  * ```
@@ -26,6 +28,9 @@ sealed interface PaymentState {
 
     /** The PSP requires 3D Secure; the user must complete [challenge]. */
     data class RequiresSca(val challenge: ScaChallenge) : PaymentState
+
+    /** The method needs approval on the provider's page; the user must complete [redirect]. */
+    data class RequiresRedirect(val redirect: RedirectChallenge) : PaymentState
 
     /** Funds are held on the customer's card; the charge happens at capture (order dispatch). */
     data class Authorized(val receipt: Receipt) : PaymentState
@@ -53,5 +58,6 @@ fun PaymentResult.toPaymentState(): PaymentState = when (this) {
     is PaymentResult.Captured -> PaymentState.Captured(receipt)
     is PaymentResult.Refunded -> PaymentState.Refunded(receipt)
     is PaymentResult.RequiresSca -> PaymentState.RequiresSca(challenge)
+    is PaymentResult.RequiresRedirect -> PaymentState.RequiresRedirect(redirect)
     is PaymentResult.Failed -> PaymentState.Failed(error)
 }

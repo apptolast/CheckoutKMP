@@ -2,6 +2,7 @@ package com.apptolast.checkoutkmp.presentation
 
 import com.apptolast.checkoutkmp.domain.usecase.ApplyGiftCardUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CapturePaymentUseCase
+import com.apptolast.checkoutkmp.domain.usecase.CompleteRedirectUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessSplitPaymentUseCase
@@ -15,6 +16,7 @@ import com.apptolast.checkoutkmp.domain.usecase.ReverseGiftCardRedemptionUseCase
 data class CheckoutUseCases(
     val processPayment: ProcessPaymentUseCase,
     val completeSca: CompleteScaUseCase,
+    val completeRedirect: CompleteRedirectUseCase,
     val capturePayment: CapturePaymentUseCase,
     val refundPayment: RefundPaymentUseCase,
     val processSplitPayment: ProcessSplitPaymentUseCase,

@@ -5,6 +5,7 @@ import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.GiftCard
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.Receipt
+import com.apptolast.checkoutkmp.domain.model.RedirectChallenge
 import com.apptolast.checkoutkmp.domain.model.ScaChallenge
 import com.apptolast.checkoutkmp.domain.model.SplitPlan
 import com.apptolast.checkoutkmp.domain.model.planSplit
@@ -12,6 +13,8 @@ import com.apptolast.checkoutkmp.domain.model.planSplit
 /** The payment methods the user can pick in the demo. The UI resolves the localized label. */
 enum class MethodOption {
     CARD,
+    PAYPAL,
+    BIZUM,
 }
 
 /**
@@ -52,6 +55,15 @@ sealed interface CheckoutStatus {
         val challenge: ScaChallenge,
         val otpError: Boolean = false,
         val isVerifying: Boolean = false,
+    ) : CheckoutStatus
+
+    /**
+     * The user must approve the payment on the provider's page (simulated redirect).
+     * [isConfirming] is true while the return is being reconciled with the PSP (webhook).
+     */
+    data class RequiresRedirect(
+        val redirect: RedirectChallenge,
+        val isConfirming: Boolean = false,
     ) : CheckoutStatus
 
     /**
