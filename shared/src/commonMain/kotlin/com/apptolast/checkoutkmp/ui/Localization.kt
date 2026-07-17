@@ -97,6 +97,12 @@ interface Strings {
     val paymentId: String
     val date: String
 
+    /** Accessible name of the small copy button next to a receipt identifier, e.g. "Copy Payment id". */
+    fun copyLabel(label: String): String
+
+    /** Confirmation shown and politely announced after a receipt identifier was copied. */
+    fun copiedAnnouncement(label: String): String
+
     /** Month abbreviations, January first, used to format the receipt date. */
     val monthAbbreviations: List<String>
     val newPayment: String
@@ -214,6 +220,8 @@ object EnStrings : Strings {
     override val authCode = "Auth code"
     override val paymentId = "Payment id"
     override val date = "Date"
+    override fun copyLabel(label: String) = "Copy $label"
+    override fun copiedAnnouncement(label: String) = "$label copied"
     override val monthAbbreviations =
         listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
     override val newPayment = "New payment"
@@ -329,6 +337,8 @@ object EsStrings : Strings {
     override val authCode = "Código de autorización"
     override val paymentId = "ID de pago"
     override val date = "Fecha"
+    override fun copyLabel(label: String) = "Copiar $label"
+    override fun copiedAnnouncement(label: String) = "$label copiado"
     override val monthAbbreviations =
         listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
     override val newPayment = "Nuevo pago"

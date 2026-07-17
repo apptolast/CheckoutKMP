@@ -48,15 +48,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -78,9 +81,12 @@ import com.apptolast.checkoutkmp.presentation.CheckoutState
 import com.apptolast.checkoutkmp.presentation.CheckoutStatus
 import com.apptolast.checkoutkmp.presentation.MethodOption
 import com.apptolast.checkoutkmp.presentation.CheckoutViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 // Alpha applied to white content laid over the brand gradient header.
@@ -92,6 +98,10 @@ private const val TIME_COMPONENT_DIGITS = 2
 
 // Fraction of the content height the entering status screen slides up from.
 private const val ENTER_SLIDE_FRACTION = 8
+
+// How long the "copied" confirmation stays shown before its slot clears, so copying the same
+// value again later produces a fresh live-region announcement.
+private val COPY_CONFIRMATION_DURATION = 4.seconds
 
 // Accessibility note: these screens are plain vertical Column/Row layouts, so the natural focus
 // and reading order already matches the visual order. We deliberately do NOT set traversalIndex —
@@ -925,12 +935,33 @@ private fun SettlementAction(
  *  Shared with the order-detail screen, which shows the same card for a past payment. */
 @Composable
 internal fun ReceiptDetails(receipt: Receipt) {
+    val strings = LocalStrings.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    // Transient copy confirmation; cleared after a beat so a later copy announces again.
+    var copiedMessage by remember { mutableStateOf("") }
+    LaunchedEffect(copiedMessage) {
+        if (copiedMessage.isNotEmpty()) {
+            delay(COPY_CONFIRMATION_DURATION)
+            copiedMessage = ""
+        }
+    }
+
+    // SECURITY: only the receipt identifiers (payment id, auth code) are ever copyable.
+    // The masked card line must never gain a copy affordance — nothing card-shaped
+    // belongs in the clipboard, not even the mask.
+    fun copyIdentifier(label: String, value: String) {
+        scope.launch {
+            clipboard.setClipEntry(plainTextClipEntry(value))
+            copiedMessage = strings.copiedAnnouncement(label)
+        }
+    }
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(Dimens.spacingLarge),
             verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium),
         ) {
-            val strings = LocalStrings.current
             when (val method = receipt.method) {
                 is PaymentMethod.Card -> {
                     val brand = brandLabel(method.token.brand)
@@ -967,17 +998,28 @@ internal fun ReceiptDetails(receipt: Receipt) {
                     valueDescription = strings.minusAmount(tenderAmount),
                 )
             }
-            if (receipt.authCode != null) {
+            val authCode = receipt.authCode
+            if (authCode != null) {
                 ReceiptRow(
                     icon = CheckoutIcons.CheckCircle,
                     label = strings.authCode,
-                    value = receipt.authCode,
+                    value = authCode,
+                    onCopy = { copyIdentifier(strings.authCode, authCode) },
                 )
             }
             ReceiptRow(
                 icon = CheckoutIcons.Receipt,
                 label = strings.paymentId,
                 value = receipt.paymentId,
+                onCopy = { copyIdentifier(strings.paymentId, receipt.paymentId) },
+            )
+            // Slot always present so the copy confirmation appearing never shifts the rows below;
+            // the Polite live region announces "{label} copied" for TalkBack without moving focus.
+            Text(
+                copiedMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
             ReceiptRow(
                 icon = CheckoutIcons.CalendarMonth,
@@ -1015,12 +1057,18 @@ private fun AfterSalesRow(label: String, available: Boolean) {
     )
 }
 
+/**
+ * One labelled line of the receipt card. [onCopy], when present, adds a trailing copy button named
+ * "Copy {label}" for screen readers. Reserved for the receipt identifiers (payment id, auth code):
+ * card data — even masked — must never be made copyable.
+ */
 @Composable
 private fun ReceiptRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     value: String,
     valueDescription: String? = null,
+    onCopy: (() -> Unit)? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -1045,6 +1093,16 @@ private fun ReceiptRow(
                 Modifier
             }
             Text(value, style = MaterialTheme.typography.bodyLarge, modifier = valueModifier)
+        }
+        if (onCopy != null) {
+            IconButton(onClick = onCopy) {
+                Icon(
+                    CheckoutIcons.Copy,
+                    contentDescription = LocalStrings.current.copyLabel(label),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(Dimens.iconSmall),
+                )
+            }
         }
     }
 }

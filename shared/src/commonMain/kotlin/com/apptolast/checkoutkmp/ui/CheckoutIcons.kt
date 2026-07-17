@@ -123,6 +123,14 @@ object CheckoutIcons {
                 "9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"
         }
     }
+
+    /** Two stacked sheets — copies a receipt identifier to the clipboard. */
+    val Copy: ImageVector by lazy {
+        icon("Copy") {
+            "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 " +
+                "0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+        }
+    }
 }
 
 /** Builds a 24dp icon from a single SVG path string, filled black for tinting by `Icon`. */
