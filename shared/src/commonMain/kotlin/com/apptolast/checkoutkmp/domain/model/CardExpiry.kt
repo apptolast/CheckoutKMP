@@ -37,7 +37,7 @@ data class CardExpiry(
         /** Two-digit years are mapped into the 21st century (e.g. `26` → `2026`). */
         private const val CENTURY_BASE = 2000
         private const val YEARS_PER_CENTURY = 100
-        private val YEAR_RANGE = CENTURY_BASE..(CENTURY_BASE + YEARS_PER_CENTURY - 1)
+        private val YEAR_RANGE = CENTURY_BASE..<CENTURY_BASE + YEARS_PER_CENTURY
 
         /**
          * Parse a `MM/YY` or `MMYY` string. Two-digit years map to 20YY.
