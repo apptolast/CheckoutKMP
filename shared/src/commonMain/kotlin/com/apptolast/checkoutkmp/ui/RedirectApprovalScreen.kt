@@ -32,7 +32,6 @@ import com.apptolast.checkoutkmp.domain.model.RedirectReturn
  */
 @Composable
 fun RedirectApprovalScreen(
-    provider: String,
     challenge: RedirectChallenge,
     isConfirming: Boolean,
     onReturn: (RedirectReturn) -> Unit,
@@ -56,7 +55,7 @@ fun RedirectApprovalScreen(
                 modifier = Modifier.size(Dimens.iconMedium),
             )
             Text(
-                strings.continueAt(provider),
+                strings.continueAt(challenge.provider),
                 style = MaterialTheme.typography.headlineSmall,
             )
         }

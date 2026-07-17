@@ -213,7 +213,6 @@ private fun StatusContent(
         )
 
         is CheckoutStatus.RequiresRedirect -> RedirectApprovalScreen(
-            provider = methodLabel(state.method),
             challenge = status.redirect,
             isConfirming = status.isConfirming,
             onReturn = { onIntent(CheckoutIntent.CompleteRedirect(it)) },

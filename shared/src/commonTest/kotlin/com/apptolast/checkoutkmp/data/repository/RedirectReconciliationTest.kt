@@ -37,6 +37,11 @@ class RedirectReconciliationTest {
         val redirect = assertIs<PaymentResult.RequiresRedirect>(result).redirect
         assertTrue(redirect.url.startsWith("https://"), "the approval page is the provider's")
         assertTrue(redirect.returnUrl.isNotBlank(), "there must be a deep link to come back to")
+        assertEquals(
+            Fixtures.walletMethod.label,
+            redirect.provider,
+            "the challenge carries the provider identity for the UI",
+        )
         assertEquals(0, psp.chargeCount, "creating the order charges nothing")
     }
 

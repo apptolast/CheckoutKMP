@@ -80,7 +80,14 @@ class PaymentRepositoryImpl(
             ScaChallenge(challengeId = challengeId, deliveryHint = deliveryHint, otpLength = otpLength),
         )
         is PspResponse.RedirectRequired -> PaymentResult.RequiresRedirect(
-            RedirectChallenge(redirectId = redirectId, url = url, returnUrl = returnUrl),
+            // The provider identity travels with the challenge: the UI derives its heading from the
+            // domain instead of re-deriving it from the selected method.
+            RedirectChallenge(
+                redirectId = redirectId,
+                provider = request.method.label,
+                url = url,
+                returnUrl = returnUrl,
+            ),
         )
         is PspResponse.Refunded -> toFailure()
         is PspResponse.Voided -> toFailure()

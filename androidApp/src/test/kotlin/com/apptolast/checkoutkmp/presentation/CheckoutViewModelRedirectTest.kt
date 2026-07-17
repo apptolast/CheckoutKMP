@@ -64,7 +64,12 @@ class CheckoutViewModelRedirectTest {
         vm.startPaypalPayment()
         advanceUntilIdle()
 
-        assertIs<CheckoutStatus.RequiresRedirect>(vm.state.value.status)
+        val status = assertIs<CheckoutStatus.RequiresRedirect>(vm.state.value.status)
+        assertEquals(
+            PaymentMethod.Wallet.Provider.PAYPAL.displayName,
+            status.redirect.provider,
+            "the challenge itself tells the UI which provider to continue at",
+        )
         assertEquals(0, psp.chargeCount)
     }
 

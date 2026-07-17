@@ -10,6 +10,8 @@ package com.apptolast.checkoutkmp.domain.model
  */
 data class RedirectChallenge(
     val redirectId: String,
+    /** Display name of the provider the user must approve at (a proper noun, e.g. "PayPal"). */
+    val provider: String,
     val url: String,
     val returnUrl: String,
 )
