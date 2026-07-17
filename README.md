@@ -139,6 +139,13 @@ Material3 claro/oscuro + set de iconos propio) verificado en emulador en los cua
     un hold anulado no se puede capturar ni reembolsar, y un cargo capturado no se puede anular.
     Además, **la retención caduca**: pasada la ventana de validez del PSP (7 días simulados), la
     captura se rechaza (`authorization_expired`) y el hold queda liberado — como en las redes reales.
+14. ✅ **Histórico de pedidos** — cada pago liquidado se registra en `OrderHistory` (contrato de
+    dominio; `InMemoryOrderHistory` en data, sesión). El registro hace **upsert por `paymentId`**:
+    capturas, reembolsos y voids actualizan el mismo pedido, ordenado por última actualización. El
+    estado mostrado se **deriva del recibo** (`Receipt.settlement`: autorizado/cobrado/reembolsado/
+    cancelado). Pantalla de histórico navegable desde el checkout (sin librería de navegación: dos
+    pantallas, un flag izado en `App()`), con lista, importe, método y fecha; recibos PCI-safe por
+    construcción, así que el histórico tampoco contiene nunca un PAN.
 
 ## Máquina de estados del pago
 

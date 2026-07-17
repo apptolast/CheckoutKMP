@@ -39,12 +39,14 @@ e iOS son hosts finos.
                   ReverseGiftCardRedemptionUseCase, Luhn, caducidad
     repository/   contrato PaymentRepository
     giftcard/     contrato GiftCardService (lookup/redeem/reverse + resultados)
+    history/      contrato OrderHistory (upsert por paymentId, más reciente primero)
     tokenizer/    contrato CardTokenizer (+ RawCard, TokenizationResult)
     simulation/   PaymentScenario + PaymentSimulator (seam de demo)
   data/
     psp/          FakePsp (implementa Psp + PaymentSimulator), PspErrorMapper
     repository/   PaymentRepositoryImpl + RetryingPaymentRepository (backoff, solo transitorios)
     giftcard/     FakeGiftCardStore (saldos + ledger de redenciones/reversas)
+    history/      InMemoryOrderHistory (histórico de sesión)
     tokenizer/    FakeCardTokenizer (PCI-safe)
     di/           dataModule
 
@@ -95,6 +97,10 @@ iosApp        host fino: ComposeView monta MainViewControllerKt.MainViewControll
   retención, no hubo cargo); el reembolso solo aplica a cargos capturados. Un hold anulado no se
   captura ni se reembolsa; un cargo capturado no se anula. La retención **caduca** en el `FakePsp`
   (`DEFAULT_AUTHORIZATION_VALIDITY`): capturar un hold caducado → `authorization_expired`.
+- **Histórico de pedidos:** el ViewModel registra todo estado con recibo por un único embudo
+  (`applyStatus` → `RecordOrderUseCase`); `OrderHistory` hace upsert por `paymentId` (un pedido,
+  su último estado). El estado mostrado se deriva de los timestamps del recibo
+  (`Receipt.settlement`). Navegación checkout ⇄ histórico con un flag en `App()`, sin librerías.
 - **Autorización vs captura:** en el checkout se autoriza (fondos retenidos); la captura (cobro real)
   ocurre al "enviar el pedido". El momento de cobro es una **propiedad del método**
   (`PaymentMethod.capturesImmediately`): tarjeta difiere la captura; wallets cobran en un paso y
