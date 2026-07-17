@@ -30,12 +30,21 @@ data class CheckoutState(
     val scenario: PaymentScenario = PaymentScenario.APPROVED,
     val giftCard: GiftCard? = null,
     val giftCardNotFound: Boolean = false,
+    val isApplyingGiftCard: Boolean = false,
     val status: CheckoutStatus = CheckoutStatus.Editing,
 ) {
     val isProcessing: Boolean get() = status is CheckoutStatus.Processing
 
     /** Tender split for the current total: gift card first, the card pays [SplitPlan.remainder]. */
     val plan: SplitPlan get() = planSplit(amount, giftCard)
+
+    /**
+     * True when a wallet method is selected while a gift card is applied. Wallets pay the full
+     * total (they don't split tenders), so the UI must say so explicitly instead of silently
+     * charging more than the "remaining to pay" the user last saw. The gift card is deliberately
+     * kept applied: switching back to card resumes the split exactly as the user left it.
+     */
+    val walletIgnoresGiftCard: Boolean get() = method != MethodOption.CARD && giftCard != null
 }
 
 /** Where the checkout is in its lifecycle. Mirrors the domain [com.apptolast.checkoutkmp.domain.model.PaymentState]. */

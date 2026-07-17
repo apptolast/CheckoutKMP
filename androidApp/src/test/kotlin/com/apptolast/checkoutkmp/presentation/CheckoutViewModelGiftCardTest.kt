@@ -21,6 +21,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -204,6 +205,91 @@ class CheckoutViewModelGiftCardTest {
         assertEquals(CheckoutStatus.Editing, vm.state.value.status)
         assertEquals(balance, store.balanceOf("GIFT25"))
         assertEquals(1, store.reversalCount)
+    }
+
+    @Test
+    fun applying_is_busy_while_the_lookup_runs_and_clears_when_it_finishes() = runTest {
+        val (_, _, vm) = newViewModel()
+
+        vm.onIntent(CheckoutIntent.ApplyGiftCard("GIFT25"))
+
+        // Busy from the moment the intent arrives, before the lookup coroutine has run.
+        assertTrue(vm.state.value.isApplyingGiftCard)
+        advanceUntilIdle()
+
+        assertFalse(vm.state.value.isApplyingGiftCard)
+        assertEquals(balance, vm.state.value.giftCard?.balance)
+    }
+
+    @Test
+    fun a_failed_lookup_clears_busy_and_flags_not_found() = runTest {
+        val (_, _, vm) = newViewModel()
+
+        vm.onIntent(CheckoutIntent.ApplyGiftCard("NOPE"))
+        assertTrue(vm.state.value.isApplyingGiftCard)
+        advanceUntilIdle()
+
+        assertFalse(vm.state.value.isApplyingGiftCard)
+        assertTrue(vm.state.value.giftCardNotFound)
+    }
+
+    @Test
+    fun apply_intents_are_ignored_while_a_lookup_is_in_flight() = runTest {
+        val (_, _, vm) = newViewModel()
+
+        vm.onIntent(CheckoutIntent.ApplyGiftCard("GIFT25"))
+        vm.onIntent(CheckoutIntent.ApplyGiftCard("GIFT100"))
+        advanceUntilIdle()
+
+        assertEquals("GIFT25", vm.state.value.giftCard?.code, "the second tap must be a no-op")
+    }
+
+    @Test
+    fun clear_gift_card_error_resets_a_not_found_verdict() = runTest {
+        val (_, _, vm) = newViewModel()
+        vm.onIntent(CheckoutIntent.ApplyGiftCard("NOPE"))
+        advanceUntilIdle()
+        assertTrue(vm.state.value.giftCardNotFound)
+
+        // Dispatched by the UI as soon as the user edits the code again.
+        vm.onIntent(CheckoutIntent.ClearGiftCardError)
+
+        assertFalse(vm.state.value.giftCardNotFound)
+    }
+
+    @Test
+    fun reapplying_clears_the_previous_not_found_verdict_immediately() = runTest {
+        val (_, _, vm) = newViewModel()
+        vm.onIntent(CheckoutIntent.ApplyGiftCard("NOPE"))
+        advanceUntilIdle()
+        assertTrue(vm.state.value.giftCardNotFound)
+
+        vm.onIntent(CheckoutIntent.ApplyGiftCard("GIFT25"))
+
+        // The stale verdict is gone the moment the new lookup starts, not when it lands.
+        assertFalse(vm.state.value.giftCardNotFound)
+        advanceUntilIdle()
+        assertEquals(balance, vm.state.value.giftCard?.balance)
+    }
+
+    @Test
+    fun switching_to_a_wallet_keeps_the_gift_card_and_flags_it_ignored() = runTest {
+        val (_, _, vm) = newViewModel()
+        vm.onIntent(CheckoutIntent.ApplyGiftCard("GIFT25"))
+        advanceUntilIdle()
+        assertFalse(vm.state.value.walletIgnoresGiftCard)
+
+        vm.onIntent(CheckoutIntent.SelectMethod(MethodOption.PAYPAL))
+
+        // The wallet pays the full total; the UI announces that the gift card is not used.
+        val state = vm.state.value
+        assertTrue(state.walletIgnoresGiftCard)
+        assertNotNull(state.giftCard, "the applied card must survive the method switch")
+
+        // Switching back to card resumes the split exactly as the user left it.
+        vm.onIntent(CheckoutIntent.SelectMethod(MethodOption.CARD))
+        assertFalse(vm.state.value.walletIgnoresGiftCard)
+        assertEquals(Amount(2499, Currency.EUR), vm.state.value.plan.remainder)
     }
 
     @Test

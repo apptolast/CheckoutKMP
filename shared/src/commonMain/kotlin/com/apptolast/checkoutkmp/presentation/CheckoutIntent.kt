@@ -19,6 +19,9 @@ sealed interface CheckoutIntent {
     /** Remove the applied gift card (nothing was consumed yet). */
     data object RemoveGiftCard : CheckoutIntent
 
+    /** Clear a stale "gift card not found" verdict as soon as the user edits the code again. */
+    data object ClearGiftCardError : CheckoutIntent
+
     /** Pay entirely with the applied gift card — only offered when its balance covers the total. */
     data object SubmitGiftCardOnly : CheckoutIntent
 

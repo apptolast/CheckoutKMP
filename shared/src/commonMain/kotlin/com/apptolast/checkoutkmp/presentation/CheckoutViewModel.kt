@@ -109,6 +109,9 @@ class CheckoutViewModel(
             CheckoutIntent.RemoveGiftCard ->
                 _state.update { it.copy(giftCard = null, giftCardNotFound = false) }
 
+            CheckoutIntent.ClearGiftCardError ->
+                _state.update { it.copy(giftCardNotFound = false) }
+
             is CheckoutIntent.Submit -> submit(intent.card)
             CheckoutIntent.SubmitGiftCardOnly -> submitGiftCardOnly()
             CheckoutIntent.SubmitWallet -> submitWallet()
@@ -148,13 +151,19 @@ class CheckoutViewModel(
     }
 
     private fun applyGiftCard(code: String) {
+        if (_state.value.isApplyingGiftCard) return
+        // Busy from the moment the intent arrives; a new lookup also voids the previous verdict.
+        _state.update { it.copy(isApplyingGiftCard = true, giftCardNotFound = false) }
         viewModelScope.launch {
-            when (val lookup = useCases.applyGiftCard(code)) {
-                is GiftCardLookup.Found ->
-                    _state.update { it.copy(giftCard = lookup.card, giftCardNotFound = false) }
+            val lookup = useCases.applyGiftCard(code)
+            _state.update {
+                when (lookup) {
+                    is GiftCardLookup.Found ->
+                        it.copy(giftCard = lookup.card, isApplyingGiftCard = false)
 
-                GiftCardLookup.NotFound ->
-                    _state.update { it.copy(giftCardNotFound = true) }
+                    GiftCardLookup.NotFound ->
+                        it.copy(giftCardNotFound = true, isApplyingGiftCard = false)
+                }
             }
         }
     }
