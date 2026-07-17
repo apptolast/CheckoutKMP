@@ -33,9 +33,10 @@ e iOS son hosts finos.
   domain/
     model/        Amount, Currency, PaymentMethod, CardToken, IdempotencyKey, CardRules,
                   PaymentRequest, Receipt, PaymentError, PaymentState, GiftCard + SplitPlan
-    usecase/      ProcessPaymentUseCase, CompleteScaUseCase, CapturePaymentUseCase,
-                  RefundPaymentUseCase, ProcessSplitPaymentUseCase (saga + compensación),
-                  ApplyGiftCardUseCase, ReverseGiftCardRedemptionUseCase, Luhn, caducidad
+    usecase/      ProcessPaymentUseCase, CompleteScaUseCase, CompleteRedirectUseCase (webhook),
+                  CapturePaymentUseCase, RefundPaymentUseCase, ProcessSplitPaymentUseCase
+                  (saga + compensación), ApplyGiftCardUseCase, ReverseGiftCardRedemptionUseCase,
+                  Luhn, caducidad
     repository/   contrato PaymentRepository
     giftcard/     contrato GiftCardService (lookup/redeem/reverse + resultados)
     tokenizer/    contrato CardTokenizer (+ RawCard, TokenizationResult)
@@ -83,6 +84,10 @@ iosApp        host fino: ComposeView monta MainViewControllerKt.MainViewControll
   la tarjeta cobra solo el restante. Si cubre el total → sin tarjeta y **sin 3DS**. Fallo parcial
   (tarjeta rechazada tras redimir) → **compensación**: se revierte la redención. Transitorios NO
   compensan (la saga se reejecuta con las mismas claves). Reembolso = cada tender a su origen.
+- **Redirección (PayPal/Bizum):** `PaymentMethod.requiresRedirect`. El retorno del usuario es un
+  **indicio, no confirmación**: la verdad es el webhook del PSP (simulado en `FakePsp`, registrado al
+  crear la orden). Retorno aprobado + webhook rechazado → `Declined`, **sin cobro**; el cobro solo
+  ocurre al confirmar el webhook (y va directo a `Captured`).
 - **Autorización vs captura:** en el checkout se autoriza (fondos retenidos); la captura (cobro real)
   ocurre al "enviar el pedido". El momento de cobro es una **propiedad del método**
   (`PaymentMethod.capturesImmediately`): tarjeta difiere la captura; wallets cobran en un paso y

@@ -123,7 +123,12 @@ Material3 claro/oscuro + set de iconos propio) verificado en emulador en los cua
     tarjeta es rechazada tras consumir el saldo, la redención se **revierte**; los fallos transitorios
     no compensan (reintentar reejecuta la saga con las mismas claves y la redención se replay-a
     idempotente). El reembolso devuelve **cada tender a su origen** (PSP + reversa del saldo).
-11. ⬜ **Métodos con redirección** (Bizum / PayPal, confirmación por webhook).
+11. ✅ **Métodos con redirección** — PayPal/Bizum: el PSP crea la orden (`RequiresRedirect(url,
+    returnUrl)`), el usuario aprueba en el proveedor y vuelve por deep link. **El retorno es solo un
+    indicio**: `CompleteRedirectUseCase` reconcilia el retorno contra el **webhook** simulado en
+    `FakePsp` (registrado al crear la orden, invisible para el cliente). Un retorno "aprobado" cuyo
+    webhook fue rechazado **falla y nunca cobra**; cancelar mapea a `Cancelled`; el cobro solo ocurre
+    cuando el proveedor confirma (y directo a `Captured`, sin pasar por `Authorized`).
 12. ⬜ **Elegibilidad por método** (operaciones post-venta según el medio de pago).
 
 ## Máquina de estados del pago
@@ -135,9 +140,12 @@ stateDiagram-v2
     Processing --> Authorized: fondos retenidos (tarjeta)
     Processing --> Captured: cobro inmediato (wallets)
     Processing --> RequiresSca: 3D Secure requerido
+    Processing --> RequiresRedirect: método con redirección (PayPal/Bizum)
     Processing --> Failed: Declined / InvalidCard / transitorio*
     RequiresSca --> Processing: enviar OTP
     RequiresSca --> Failed: cancelar (Cancelled) / ScaFailed
+    RequiresRedirect --> Captured: retorno + webhook CONFIRMADO
+    RequiresRedirect --> Failed: cancelar / webhook rechazado
     Failed --> Processing: reintentar (solo transitorios, misma IdempotencyKey)
     Failed --> Idle: empezar de nuevo
     Authorized --> Captured: captura (envío del pedido, clave propia)
