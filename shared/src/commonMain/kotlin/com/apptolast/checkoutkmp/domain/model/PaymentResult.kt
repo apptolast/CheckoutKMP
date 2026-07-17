@@ -15,6 +15,9 @@ sealed interface PaymentResult {
     /** A captured charge was returned to the customer. */
     data class Refunded(val receipt: Receipt) : PaymentResult
 
+    /** The authorization hold was released without charging. */
+    data class Voided(val receipt: Receipt) : PaymentResult
+
     data class RequiresSca(val challenge: ScaChallenge) : PaymentResult
     data class RequiresRedirect(val redirect: RedirectChallenge) : PaymentResult
     data class Failed(val error: PaymentError) : PaymentResult

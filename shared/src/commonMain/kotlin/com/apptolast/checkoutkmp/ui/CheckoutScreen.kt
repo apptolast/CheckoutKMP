@@ -156,6 +156,7 @@ private fun phaseKey(status: CheckoutStatus): String = when (status) {
     is CheckoutStatus.Authorized -> "authorized"
     is CheckoutStatus.Captured -> "captured"
     is CheckoutStatus.Refunded -> "refunded"
+    is CheckoutStatus.Voided -> "voided"
     is CheckoutStatus.RequiresSca -> "sca"
     is CheckoutStatus.RequiresRedirect -> "redirect"
     is CheckoutStatus.Failed -> "failed"
@@ -174,6 +175,7 @@ private fun StatusContent(
         is CheckoutStatus.Authorized -> AuthorizedReceiptView(status, onIntent)
         is CheckoutStatus.Captured -> CapturedReceiptView(status, onIntent)
         is CheckoutStatus.Refunded -> RefundedReceiptView(status.receipt, onIntent)
+        is CheckoutStatus.Voided -> VoidedReceiptView(status.receipt, onIntent)
 
         is CheckoutStatus.RequiresSca -> ScaChallengeScreen(
             challenge = status.challenge,
@@ -648,7 +650,7 @@ private fun FailureView(
     }
 }
 
-/** Funds held, customer not charged yet: offers the demo "order dispatched" capture. */
+/** Funds held, customer not charged yet: capture on dispatch, or void by cancelling the order. */
 @Composable
 private fun AuthorizedReceiptView(
     status: CheckoutStatus.Authorized,
@@ -670,9 +672,35 @@ private fun AuthorizedReceiptView(
             busyLabel = strings.capturingPayment,
             isBusy = status.isCapturing,
             error = status.captureError,
+            enabled = !status.isWorking,
             onClick = { onIntent(CheckoutIntent.Capture) },
         )
+        SettlementAction(
+            label = strings.voidOrder,
+            busyLabel = strings.voidingPayment,
+            isBusy = status.isVoiding,
+            error = status.voidError,
+            enabled = !status.isWorking,
+            primary = false,
+            onClick = { onIntent(CheckoutIntent.Void) },
+        )
     }
+}
+
+/** The order was cancelled before dispatch: the hold is gone and nothing was ever charged. */
+@Composable
+private fun VoidedReceiptView(receipt: Receipt, onIntent: (CheckoutIntent) -> Unit) {
+    val strings = LocalStrings.current
+    ReceiptScaffold(
+        receipt = receipt,
+        headline = strings.paymentVoided,
+        amountColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        badgeIcon = CheckoutIcons.Lock,
+        badgeContainer = MaterialTheme.colorScheme.surfaceVariant,
+        badgeContent = MaterialTheme.colorScheme.onSurfaceVariant,
+        note = strings.voidedNote,
+        onDone = { onIntent(CheckoutIntent.Reset) },
+    )
 }
 
 /** The customer has been charged: offers the refund. */
@@ -783,9 +811,10 @@ private fun ReceiptScaffold(
 }
 
 /**
- * The capture/refund demo button with its in-flight progress and an inline, announced error line —
- * a failed settlement keeps the receipt on screen so tapping again retries with the same
- * IdempotencyKey.
+ * A capture/void/refund demo button with its in-flight progress and an inline, announced error
+ * line — a failed settlement keeps the receipt on screen so tapping again retries with the same
+ * IdempotencyKey. [primary] picks filled vs outlined so a secondary operation (voiding) does not
+ * compete visually with the main one (capturing).
  */
 @Composable
 private fun SettlementAction(
@@ -794,6 +823,8 @@ private fun SettlementAction(
     isBusy: Boolean,
     error: PaymentError?,
     onClick: () -> Unit,
+    enabled: Boolean = !isBusy,
+    primary: Boolean = true,
 ) {
     if (error != null) {
         Text(
@@ -804,12 +835,17 @@ private fun SettlementAction(
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
         )
     }
-    Button(onClick = onClick, enabled = !isBusy, modifier = Modifier.fillMaxWidth()) {
+    val content: @Composable () -> Unit = {
         if (isBusy) {
             CircularProgressIndicator(modifier = Modifier.size(Dimens.inlineProgressSize))
             Spacer(Modifier.width(Dimens.spacingSmall))
         }
         Text(if (isBusy) busyLabel else label)
+    }
+    if (primary) {
+        Button(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth()) { content() }
+    } else {
+        OutlinedButton(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth()) { content() }
     }
 }
 

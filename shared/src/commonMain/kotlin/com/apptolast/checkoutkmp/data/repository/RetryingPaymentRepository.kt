@@ -47,6 +47,9 @@ class RetryingPaymentRepository(
     override suspend fun capture(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult =
         retryTransient { delegate.capture(receipt, idempotencyKey) }
 
+    override suspend fun void(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult =
+        retryTransient { delegate.void(receipt, idempotencyKey) }
+
     override suspend fun refund(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult =
         retryTransient { delegate.refund(receipt, idempotencyKey) }
 

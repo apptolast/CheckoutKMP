@@ -8,6 +8,7 @@ import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessSplitPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.RefundPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ReverseGiftCardRedemptionUseCase
+import com.apptolast.checkoutkmp.domain.usecase.VoidAuthorizationUseCase
 
 /**
  * The domain use cases the [CheckoutViewModel] drives, grouped so the ViewModel constructor does
@@ -18,6 +19,7 @@ data class CheckoutUseCases(
     val completeSca: CompleteScaUseCase,
     val completeRedirect: CompleteRedirectUseCase,
     val capturePayment: CapturePaymentUseCase,
+    val voidAuthorization: VoidAuthorizationUseCase,
     val refundPayment: RefundPaymentUseCase,
     val processSplitPayment: ProcessSplitPaymentUseCase,
     val applyGiftCard: ApplyGiftCardUseCase,

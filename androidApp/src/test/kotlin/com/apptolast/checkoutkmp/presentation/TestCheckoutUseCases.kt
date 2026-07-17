@@ -11,6 +11,7 @@ import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessSplitPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.RefundPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ReverseGiftCardRedemptionUseCase
+import com.apptolast.checkoutkmp.domain.usecase.VoidAuthorizationUseCase
 
 /** Builds the full [CheckoutUseCases] graph for ViewModel tests, mirroring the production wiring. */
 fun checkoutUseCases(
@@ -21,6 +22,7 @@ fun checkoutUseCases(
     completeSca = CompleteScaUseCase(repo),
     completeRedirect = CompleteRedirectUseCase(repo),
     capturePayment = CapturePaymentUseCase(repo),
+    voidAuthorization = VoidAuthorizationUseCase(repo),
     refundPayment = RefundPaymentUseCase(repo),
     processSplitPayment = ProcessSplitPaymentUseCase(giftCards, repo),
     applyGiftCard = ApplyGiftCardUseCase(giftCards),

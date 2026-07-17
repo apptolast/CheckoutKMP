@@ -5,6 +5,7 @@ package com.apptolast.checkoutkmp.domain.model
  *
  * ```
  * Idle ──► Processing ──► Authorized ──(capture)──► Captured ──(refund)──► Refunded
+ *                    │        └──(void: order cancelled / hold lapsed)──► Voided
  *                    ├──► Captured      (immediate-capture methods skip Authorized)
  *                    ├──► RequiresSca ──(completeSca)──► Processing ──► Authorized / Captured
  *                    │                                              └──► Failed
@@ -41,15 +42,19 @@ sealed interface PaymentState {
     /** A captured charge was returned to the customer. */
     data class Refunded(val receipt: Receipt) : PaymentState
 
+    /** The authorization hold was released without ever charging (cancelled order / lapsed hold). */
+    data class Voided(val receipt: Receipt) : PaymentState
+
     /** Terminal failure carrying the classified [error]. */
     data class Failed(val error: PaymentError) : PaymentState
 
     /**
      * True once the attempt has reached an outcome and nothing is in flight. Settled is not final:
-     * [Authorized] and [Captured] still accept the capture/refund merchant operations.
+     * [Authorized] and [Captured] still accept the capture/void/refund merchant operations.
      */
     val isSettled: Boolean
-        get() = this is Authorized || this is Captured || this is Refunded || this is Failed
+        get() = this is Authorized || this is Captured || this is Refunded ||
+            this is Voided || this is Failed
 }
 
 /** Maps a repository [PaymentResult] into the corresponding [PaymentState]. */
@@ -57,6 +62,7 @@ fun PaymentResult.toPaymentState(): PaymentState = when (this) {
     is PaymentResult.Authorized -> PaymentState.Authorized(receipt)
     is PaymentResult.Captured -> PaymentState.Captured(receipt)
     is PaymentResult.Refunded -> PaymentState.Refunded(receipt)
+    is PaymentResult.Voided -> PaymentState.Voided(receipt)
     is PaymentResult.RequiresSca -> PaymentState.RequiresSca(challenge)
     is PaymentResult.RequiresRedirect -> PaymentState.RequiresRedirect(redirect)
     is PaymentResult.Failed -> PaymentState.Failed(error)

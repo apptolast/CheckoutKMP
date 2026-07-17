@@ -32,6 +32,9 @@ interface PaymentRepository {
     /** Capture (actually charge) a previously authorized payment. Idempotent on [idempotencyKey]. */
     suspend fun capture(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult
 
+    /** Release the hold of an uncaptured authorization (no charge). Idempotent on [idempotencyKey]. */
+    suspend fun void(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult
+
     /** Refund a previously captured payment. Idempotent on [idempotencyKey]. */
     suspend fun refund(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult
 }

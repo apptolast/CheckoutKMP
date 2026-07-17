@@ -66,6 +66,9 @@ class CheckoutViewModel(
     /** Key of the current capture attempt; reused on retry, cleared once the capture succeeds. */
     private var captureKey: IdempotencyKey? = null
 
+    /** Key of the current void attempt; reused on retry, cleared once the hold is released. */
+    private var voidKey: IdempotencyKey? = null
+
     /** Keys of the current refund attempt (card refund + gift-card reversal to origin). */
     private var refundKey: IdempotencyKey? = null
     private var refundReversalKey: IdempotencyKey? = null
@@ -101,6 +104,7 @@ class CheckoutViewModel(
             }
 
             CheckoutIntent.Capture -> capture()
+            CheckoutIntent.Void -> voidAuthorization()
             CheckoutIntent.Refund -> refund()
 
             CheckoutIntent.Retry -> retry()
@@ -120,6 +124,7 @@ class CheckoutViewModel(
         redemptionKey = null
         reversalKey = null
         captureKey = null
+        voidKey = null
         refundKey = null
         refundReversalKey = null
     }
@@ -302,7 +307,7 @@ class CheckoutViewModel(
     /** Demo "order dispatched": capture the held funds, reusing [captureKey] across retries. */
     private fun capture() {
         val current = _state.value.status as? CheckoutStatus.Authorized ?: return
-        if (current.isCapturing) return
+        if (current.isWorking) return
 
         val key = captureKey ?: IdempotencyKey.random().also { captureKey = it }
         _state.update { it.copy(status = current.copy(isCapturing = true, captureError = null)) }
@@ -319,6 +324,30 @@ class CheckoutViewModel(
 
                 // The capture use case only settles or fails; anything else leaves the receipt as-is.
                 else -> current.copy(isCapturing = false)
+            }
+            _state.update { it.copy(status = newStatus) }
+        }
+    }
+
+    /** Demo "cancel the order": release the hold, reusing [voidKey] across retries. */
+    private fun voidAuthorization() {
+        val current = _state.value.status as? CheckoutStatus.Authorized ?: return
+        if (current.isWorking) return
+
+        val key = voidKey ?: IdempotencyKey.random().also { voidKey = it }
+        _state.update { it.copy(status = current.copy(isVoiding = true, voidError = null)) }
+
+        viewModelScope.launch {
+            val newStatus = when (val result = useCases.voidAuthorization(current.receipt, key)) {
+                is PaymentState.Voided -> {
+                    voidKey = null
+                    CheckoutStatus.Voided(result.receipt)
+                }
+
+                is PaymentState.Failed ->
+                    current.copy(isVoiding = false, voidError = result.error)
+
+                else -> current.copy(isVoiding = false)
             }
             _state.update { it.copy(status = newStatus) }
         }
@@ -407,7 +436,8 @@ class CheckoutViewModel(
 
                     is PaymentState.Authorized,
                     is PaymentState.Captured,
-                    is PaymentState.Refunded -> {
+                    is PaymentState.Refunded,
+                    is PaymentState.Voided -> {
                         pendingRequest = null
                         paymentState.withPendingGiftCardTender().toCheckoutStatus()
                     }
@@ -454,5 +484,6 @@ private fun PaymentState.toCheckoutStatus(): CheckoutStatus = when (this) {
     is PaymentState.Authorized -> CheckoutStatus.Authorized(receipt)
     is PaymentState.Captured -> CheckoutStatus.Captured(receipt)
     is PaymentState.Refunded -> CheckoutStatus.Refunded(receipt)
+    is PaymentState.Voided -> CheckoutStatus.Voided(receipt)
     is PaymentState.Failed -> CheckoutStatus.Failed(error)
 }

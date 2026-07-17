@@ -46,6 +46,9 @@ sealed interface CheckoutIntent {
     /** Demo "the order shipped": capture the authorized funds (one IdempotencyKey per capture). */
     data object Capture : CheckoutIntent
 
+    /** Demo "cancel the order": void the authorization, releasing the hold without charging. */
+    data object Void : CheckoutIntent
+
     /** Refund the captured payment (one IdempotencyKey per refund). */
     data object Refund : CheckoutIntent
 

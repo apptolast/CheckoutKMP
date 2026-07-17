@@ -67,16 +67,21 @@ sealed interface CheckoutStatus {
     ) : CheckoutStatus
 
     /**
-     * Funds held; the customer has NOT been charged yet. [isCapturing] is true while the demo
-     * "order dispatched" capture is in flight; [captureError] carries a failed capture so the UI
-     * can show it inline and let the user retry (same capture IdempotencyKey) without leaving
-     * the receipt.
+     * Funds held; the customer has NOT been charged yet. [isCapturing]/[isVoiding] are true while
+     * the demo "order dispatched" capture or the "cancel order" void is in flight;
+     * [captureError]/[voidError] carry a failed attempt so the UI can show it inline and let the
+     * user retry (same per-operation IdempotencyKey) without leaving the receipt.
      */
     data class Authorized(
         val receipt: Receipt,
         val isCapturing: Boolean = false,
         val captureError: PaymentError? = null,
-    ) : CheckoutStatus
+        val isVoiding: Boolean = false,
+        val voidError: PaymentError? = null,
+    ) : CheckoutStatus {
+        /** True while either merchant operation is in flight. */
+        val isWorking: Boolean get() = isCapturing || isVoiding
+    }
 
     /** The customer has been charged. [isRefunding]/[refundError] mirror the capture flags. */
     data class Captured(
@@ -87,6 +92,9 @@ sealed interface CheckoutStatus {
 
     /** The charge was returned to the customer. Terminal. */
     data class Refunded(val receipt: Receipt) : CheckoutStatus
+
+    /** The hold was released without ever charging (order cancelled). Terminal. */
+    data class Voided(val receipt: Receipt) : CheckoutStatus
 
     /** Terminal failure. */
     data class Failed(val error: PaymentError) : CheckoutStatus

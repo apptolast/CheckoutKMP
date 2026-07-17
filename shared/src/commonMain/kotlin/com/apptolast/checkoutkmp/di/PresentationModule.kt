@@ -19,6 +19,7 @@ val presentationModule = module {
             completeSca = get(),
             completeRedirect = get(),
             capturePayment = get(),
+            voidAuthorization = get(),
             refundPayment = get(),
             processSplitPayment = get(),
             applyGiftCard = get(),

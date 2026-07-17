@@ -16,6 +16,7 @@ class FakePaymentRepository(
     var onCompleteSca: (PaymentRequest, String) -> PaymentResult = { _, _ -> error("completeSca not scripted") },
     var onCompleteRedirect: (PaymentRequest, RedirectReturn) -> PaymentResult = { _, _ -> error("completeRedirect not scripted") },
     var onCapture: (Receipt, IdempotencyKey) -> PaymentResult = { _, _ -> error("capture not scripted") },
+    var onVoid: (Receipt, IdempotencyKey) -> PaymentResult = { _, _ -> error("void not scripted") },
     var onRefund: (Receipt, IdempotencyKey) -> PaymentResult = { _, _ -> error("refund not scripted") },
 ) : PaymentRepository {
 
@@ -23,6 +24,7 @@ class FakePaymentRepository(
     val completeScaCalls = mutableListOf<Pair<PaymentRequest, String>>()
     val completeRedirectCalls = mutableListOf<Pair<PaymentRequest, RedirectReturn>>()
     val captureCalls = mutableListOf<Pair<Receipt, IdempotencyKey>>()
+    val voidCalls = mutableListOf<Pair<Receipt, IdempotencyKey>>()
     val refundCalls = mutableListOf<Pair<Receipt, IdempotencyKey>>()
 
     override suspend fun authorize(request: PaymentRequest): PaymentResult {
@@ -43,6 +45,11 @@ class FakePaymentRepository(
     override suspend fun capture(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult {
         captureCalls += receipt to idempotencyKey
         return onCapture(receipt, idempotencyKey)
+    }
+
+    override suspend fun void(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult {
+        voidCalls += receipt to idempotencyKey
+        return onVoid(receipt, idempotencyKey)
     }
 
     override suspend fun refund(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult {

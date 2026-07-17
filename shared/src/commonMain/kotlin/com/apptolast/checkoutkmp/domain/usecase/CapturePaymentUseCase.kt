@@ -21,6 +21,8 @@ class CapturePaymentUseCase(
         when {
             receipt.refundedAt != null -> PaymentState.Refunded(receipt)
             receipt.capturedAt != null -> PaymentState.Captured(receipt)
+            // A released hold has nothing left to charge.
+            receipt.voidedAt != null -> PaymentState.Voided(receipt)
             else -> repository.capture(receipt, idempotencyKey).toPaymentState()
         }
 }

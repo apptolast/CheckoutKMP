@@ -20,6 +20,8 @@ class RefundPaymentUseCase(
     suspend operator fun invoke(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentState =
         when {
             receipt.refundedAt != null -> PaymentState.Refunded(receipt)
+            // A voided authorization never charged anything, so there is nothing to refund.
+            receipt.voidedAt != null -> PaymentState.Voided(receipt)
             else -> repository.refund(receipt, idempotencyKey).toPaymentState()
         }
 }

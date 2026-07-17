@@ -79,6 +79,10 @@ interface Strings {
     val refund: String
     val capturingPayment: String
     val refundingPayment: String
+    val paymentVoided: String
+    val voidedNote: String
+    val voidOrder: String
+    val voidingPayment: String
     val authCode: String
     val paymentId: String
     val newPayment: String
@@ -170,6 +174,10 @@ object EnStrings : Strings {
     override val refund = "Refund"
     override val capturingPayment = "Charging…"
     override val refundingPayment = "Refunding…"
+    override val paymentVoided = "Order cancelled"
+    override val voidedNote = "The hold was released — you were never charged."
+    override val voidOrder = "Cancel order (release hold)"
+    override val voidingPayment = "Releasing hold…"
     override val authCode = "Auth code"
     override val paymentId = "Payment id"
     override val newPayment = "New payment"
@@ -260,6 +268,10 @@ object EsStrings : Strings {
     override val refund = "Reembolsar"
     override val capturingPayment = "Cobrando…"
     override val refundingPayment = "Reembolsando…"
+    override val paymentVoided = "Pedido cancelado"
+    override val voidedNote = "La retención se liberó: no se llegó a cobrar."
+    override val voidOrder = "Cancelar pedido (liberar retención)"
+    override val voidingPayment = "Liberando retención…"
     override val authCode = "Código de autorización"
     override val paymentId = "ID de pago"
     override val newPayment = "Nuevo pago"

@@ -8,8 +8,11 @@ import com.apptolast.checkoutkmp.domain.simulation.DemoDefaults
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.simulation.PaymentSimulator
 import kotlinx.coroutines.delay
+import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 /**
@@ -32,6 +35,9 @@ import kotlin.uuid.Uuid
  *   sees it directly. [completeRedirect] then reconciles the user's *claim* against that record:
  *   an "approved" return whose webhook was rejected is still declined. The charge itself happens
  *   only when the webhook confirms.
+ * - **Holds are not forever:** an authorization can be [void]ed (order cancelled — the hold is
+ *   released, nothing was charged) and it expires after [authorizationValidity]: capturing a
+ *   lapsed hold is declined and the PSP releases it, exactly like real card networks do.
  *
  * PCI note: only tokens/last4 reach this class via [PaymentRequest]; no PAN is ever handled here.
  */
@@ -39,16 +45,23 @@ class FakePsp(
     override var scenario: PaymentScenario = PaymentScenario.APPROVED,
     private val latency: Duration = 0.milliseconds,
     private val validOtp: String = DemoDefaults.SCA_OTP,
+    private val clock: Clock = Clock.System,
+    private val authorizationValidity: Duration = DEFAULT_AUTHORIZATION_VALIDITY,
 ) : Psp, PaymentSimulator {
 
-    private enum class Lifecycle { AUTHORIZED, CAPTURED, REFUNDED }
-    private class PaymentRecord(var lifecycle: Lifecycle, val authCode: String)
+    private enum class Lifecycle { AUTHORIZED, CAPTURED, REFUNDED, VOIDED }
+    private class PaymentRecord(
+        var lifecycle: Lifecycle,
+        val authCode: String,
+        val authorizedAt: Instant,
+    )
 
     /** What the provider confirmed to the PSP for a redirect order — the source of truth. */
     private enum class WebhookOutcome { CONFIRMED, REJECTED }
 
     private val authorizations = mutableMapOf<IdempotencyKey, PspResponse>()
     private val captures = mutableMapOf<IdempotencyKey, PspResponse>()
+    private val voids = mutableMapOf<IdempotencyKey, PspResponse>()
     private val refunds = mutableMapOf<IdempotencyKey, PspResponse>()
 
     /** Lifecycle ledger per PSP payment id — what has really happened to each payment. */
@@ -67,6 +80,10 @@ class FakePsp(
 
     /** Number of real refunds performed (idempotent replays do not increment it). */
     var refundCount: Int = 0
+        private set
+
+    /** Number of real voids performed (idempotent replays and expiries do not increment it). */
+    var voidCount: Int = 0
         private set
 
     override suspend fun authorize(request: PaymentRequest): PspResponse {
@@ -180,13 +197,41 @@ class FakePsp(
             null -> PspResponse.Declined("unknown_payment", "No payment with id $pspPaymentId")
             Lifecycle.CAPTURED -> PspResponse.Declined("already_captured", "The payment is already captured")
             Lifecycle.REFUNDED -> PspResponse.Declined("already_refunded", "The payment was refunded")
-            Lifecycle.AUTHORIZED -> {
-                captureCount++
-                record.lifecycle = Lifecycle.CAPTURED
-                PspResponse.Captured(pspPaymentId, record.authCode)
-            }
+            Lifecycle.VOIDED -> PspResponse.Declined("authorization_voided", "The hold was already released")
+            Lifecycle.AUTHORIZED ->
+                if (clock.now() - record.authorizedAt > authorizationValidity) {
+                    // The hold lapsed: the network releases it, so there is nothing left to charge.
+                    record.lifecycle = Lifecycle.VOIDED
+                    PspResponse.Declined("authorization_expired", "The authorization hold has expired")
+                } else {
+                    captureCount++
+                    record.lifecycle = Lifecycle.CAPTURED
+                    PspResponse.Captured(pspPaymentId, record.authCode)
+                }
         }
         captures[idempotencyKey] = response
+        return response
+    }
+
+    override suspend fun void(pspPaymentId: String, idempotencyKey: IdempotencyKey): PspResponse {
+        delay(latency)
+        transientKind(scenario)?.let { throw PspException(it, "Simulated $it failure") }
+
+        voids[idempotencyKey]?.let { return it }
+
+        val record = payments[pspPaymentId]
+        val response = when (record?.lifecycle) {
+            null -> PspResponse.Declined("unknown_payment", "No payment with id $pspPaymentId")
+            Lifecycle.CAPTURED -> PspResponse.Declined("already_captured", "A captured payment is refunded, not voided")
+            Lifecycle.REFUNDED -> PspResponse.Declined("already_refunded", "The payment was refunded")
+            Lifecycle.VOIDED -> PspResponse.Declined("already_voided", "The hold was already released")
+            Lifecycle.AUTHORIZED -> {
+                voidCount++
+                record.lifecycle = Lifecycle.VOIDED
+                PspResponse.Voided(pspPaymentId)
+            }
+        }
+        voids[idempotencyKey] = response
         return response
     }
 
@@ -201,6 +246,7 @@ class FakePsp(
             null -> PspResponse.Declined("unknown_payment", "No payment with id $pspPaymentId")
             Lifecycle.AUTHORIZED -> PspResponse.Declined("not_captured", "Only captured payments can be refunded")
             Lifecycle.REFUNDED -> PspResponse.Declined("already_refunded", "The payment was already refunded")
+            Lifecycle.VOIDED -> PspResponse.Declined("authorization_voided", "Nothing was charged, nothing to refund")
             Lifecycle.CAPTURED -> {
                 refundCount++
                 record.lifecycle = Lifecycle.REFUNDED
@@ -223,25 +269,28 @@ class FakePsp(
         val paymentId = "pay_${Uuid.random()}"
         val authCode = "AUTH${Uuid.random().toString().take(AUTH_CODE_LENGTH).uppercase()}"
         return if (method.capturesImmediately) {
-            payments[paymentId] = PaymentRecord(Lifecycle.CAPTURED, authCode)
+            payments[paymentId] = PaymentRecord(Lifecycle.CAPTURED, authCode, clock.now())
             PspResponse.Captured(paymentId, authCode)
         } else {
-            payments[paymentId] = PaymentRecord(Lifecycle.AUTHORIZED, authCode)
+            payments[paymentId] = PaymentRecord(Lifecycle.AUTHORIZED, authCode, clock.now())
             PspResponse.Authorized(paymentId, authCode)
         }
     }
 
-    private companion object {
+    companion object {
+        /** How long a simulated authorization hold stays capturable (typical card-network window). */
+        val DEFAULT_AUTHORIZATION_VALIDITY = 7.days
+
         /** Length of the random suffix in a simulated authorization code. */
-        const val AUTH_CODE_LENGTH = 6
+        private const val AUTH_CODE_LENGTH = 6
 
         /** Masked destination shown for the demo 3D Secure code delivery. */
-        const val DELIVERY_HINT = "•••• 90"
+        private const val DELIVERY_HINT = "•••• 90"
 
         /** Base of the simulated provider approval page (a real app would open it in Custom Tabs). */
-        const val REDIRECT_BASE_URL = "https://psp.example/redirect/"
+        private const val REDIRECT_BASE_URL = "https://psp.example/redirect/"
 
         /** Deep link the provider sends the user back to after approving/cancelling. */
-        const val RETURN_URL = "checkoutkmp://payment/return"
+        private const val RETURN_URL = "checkoutkmp://payment/return"
     }
 }

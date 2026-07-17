@@ -45,6 +45,14 @@ class PaymentRepositoryImpl(
             }
         }
 
+    override suspend fun void(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult =
+        runCatchingPsp {
+            when (val response = psp.void(receipt.paymentId, idempotencyKey)) {
+                is PspResponse.Voided -> PaymentResult.Voided(receipt.copy(voidedAt = clock.now()))
+                else -> response.toFailure()
+            }
+        }
+
     override suspend fun refund(receipt: Receipt, idempotencyKey: IdempotencyKey): PaymentResult =
         runCatchingPsp {
             when (val response = psp.refund(receipt.paymentId, idempotencyKey)) {
@@ -75,6 +83,7 @@ class PaymentRepositoryImpl(
             RedirectChallenge(redirectId = redirectId, url = url, returnUrl = returnUrl),
         )
         is PspResponse.Refunded -> toFailure()
+        is PspResponse.Voided -> toFailure()
         is PspResponse.Declined -> toFailure()
         is PspResponse.ScaFailed -> toFailure()
     }

@@ -27,6 +27,9 @@ interface Psp {
     /** Capture a previously authorized payment. Must be idempotent on [idempotencyKey]. */
     suspend fun capture(pspPaymentId: String, idempotencyKey: IdempotencyKey): PspResponse
 
+    /** Release an uncaptured authorization hold. Must be idempotent on [idempotencyKey]. */
+    suspend fun void(pspPaymentId: String, idempotencyKey: IdempotencyKey): PspResponse
+
     /** Refund a previously captured payment. Must be idempotent on [idempotencyKey]. */
     suspend fun refund(pspPaymentId: String, idempotencyKey: IdempotencyKey): PspResponse
 }
@@ -48,6 +51,9 @@ sealed interface PspResponse {
 
     /** A captured charge was returned to the customer. */
     data class Refunded(val pspPaymentId: String) : PspResponse
+
+    /** The authorization hold was released; the customer was never charged. */
+    data class Voided(val pspPaymentId: String) : PspResponse
 
     data class ScaRequired(
         val challengeId: String,
