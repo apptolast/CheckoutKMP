@@ -51,6 +51,7 @@ interface Strings {
     val simulateProviderFailure: String
     val confirmingWithProvider: String
     fun payWith(provider: String): String
+    fun simulatedProviderPageLink(provider: String): String
 
     // After-sales eligibility (per payment method)
     val sizeChange: String
@@ -172,6 +173,8 @@ object EnStrings : Strings {
     override val simulateProviderFailure = "Simulate provider failure"
     override val confirmingWithProvider = "Confirming with the provider…"
     override fun payWith(provider: String) = "Pay with $provider"
+    override fun simulatedProviderPageLink(provider: String) =
+        "Link to the simulated $provider approval page"
 
     override val sizeChange = "Size change"
     override val refundToOrigin = "Refund to original method"
@@ -284,6 +287,8 @@ object EsStrings : Strings {
     override val simulateProviderFailure = "Simular fallo del proveedor"
     override val confirmingWithProvider = "Confirmando con el proveedor…"
     override fun payWith(provider: String) = "Pagar con $provider"
+    override fun simulatedProviderPageLink(provider: String) =
+        "Enlace a la página de aprobación simulada de $provider"
 
     override val sizeChange = "Cambio de talla"
     override val refundToOrigin = "Reembolso al método original"
