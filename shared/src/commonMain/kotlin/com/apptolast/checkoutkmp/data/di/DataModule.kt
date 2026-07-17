@@ -10,11 +10,13 @@ import com.apptolast.checkoutkmp.data.tokenizer.FakeCardTokenizer
 import com.apptolast.checkoutkmp.domain.giftcard.GiftCardService
 import com.apptolast.checkoutkmp.domain.history.OrderHistory
 import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
+import com.apptolast.checkoutkmp.domain.simulation.DemoDefaults
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.simulation.PaymentSimulator
 import com.apptolast.checkoutkmp.domain.tokenizer.CardTokenizer
 import org.koin.dsl.binds
 import org.koin.dsl.module
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -28,8 +30,9 @@ val dataModule = module {
     single<CardTokenizer> { FakeCardTokenizer() }
     // The gift-card backend: one instance so balances persist across the demo session.
     single<GiftCardService> { FakeGiftCardStore() }
-    // One instance so the order history survives screen changes for the whole session.
-    single<OrderHistory> { InMemoryOrderHistory() }
+    // One instance so the order history survives screen changes for the whole session,
+    // seeded with a few simulated past orders (like the fake PSP and gift-card store).
+    single<OrderHistory> { InMemoryOrderHistory(initialOrders = DemoDefaults.demoOrders(Clock.System.now())) }
     // Transient failures are retried transparently (same IdempotencyKey) by the decorator.
     single<PaymentRepository> {
         RetryingPaymentRepository(delegate = PaymentRepositoryImpl(psp = get()))

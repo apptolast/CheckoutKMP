@@ -1,8 +1,12 @@
 package com.apptolast.checkoutkmp.data.history
 
+import com.apptolast.checkoutkmp.domain.model.lastUpdatedAt
+import com.apptolast.checkoutkmp.domain.simulation.DemoDefaults
 import com.apptolast.checkoutkmp.support.Fixtures
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 class InMemoryOrderHistoryTest {
 
@@ -11,6 +15,27 @@ class InMemoryOrderHistoryTest {
     @Test
     fun starts_empty() {
         assertEquals(emptyList(), history.orders.value)
+    }
+
+    @Test
+    fun seeds_from_initial_orders_preserving_order() {
+        val seeded = InMemoryOrderHistory(
+            initialOrders = listOf(
+                Fixtures.receipt.copy(paymentId = "pay_a"),
+                Fixtures.receipt.copy(paymentId = "pay_b"),
+            ),
+        )
+
+        assertEquals(listOf("pay_a", "pay_b"), seeded.orders.value.map { it.paymentId })
+    }
+
+    @Test
+    fun demo_seed_is_non_empty_and_newest_first() {
+        val orders = DemoDefaults.demoOrders(now = Instant.fromEpochSeconds(1_700_000_000))
+
+        assertTrue(orders.isNotEmpty(), "the history screen should not open empty in the demo")
+        val timestamps = orders.map { it.lastUpdatedAt }
+        assertEquals(timestamps.sortedDescending(), timestamps, "demo orders must be most-recent first")
     }
 
     @Test
