@@ -13,6 +13,7 @@ import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessSplitPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.RefundPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ReverseGiftCardRedemptionUseCase
+import com.apptolast.checkoutkmp.domain.usecase.VoidAuthorizationUseCase
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import kotlin.test.AfterTest
@@ -37,6 +38,7 @@ class KoinGraphTest {
         assertNotNull(koin.get<ProcessPaymentUseCase>())
         assertNotNull(koin.get<CompleteScaUseCase>())
         assertNotNull(koin.get<CapturePaymentUseCase>())
+        assertNotNull(koin.get<VoidAuthorizationUseCase>())
         assertNotNull(koin.get<RefundPaymentUseCase>())
         assertNotNull(koin.get<GiftCardService>())
         assertNotNull(koin.get<ProcessSplitPaymentUseCase>())

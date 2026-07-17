@@ -27,6 +27,12 @@ class PaymentStateTest {
     }
 
     @Test
+    fun maps_voided_result_to_voided() {
+        val state = PaymentResult.Voided(Fixtures.voidedReceipt).toPaymentState()
+        assertEquals(PaymentState.Voided(Fixtures.voidedReceipt), state)
+    }
+
+    @Test
     fun maps_requires_sca_result_to_requires_sca() {
         val state = PaymentResult.RequiresSca(Fixtures.challenge).toPaymentState()
         assertEquals(PaymentState.RequiresSca(Fixtures.challenge), state)
@@ -43,6 +49,7 @@ class PaymentStateTest {
         assertTrue(PaymentState.Authorized(Fixtures.receipt).isSettled)
         assertTrue(PaymentState.Captured(Fixtures.capturedReceipt).isSettled)
         assertTrue(PaymentState.Refunded(Fixtures.refundedReceipt).isSettled)
+        assertTrue(PaymentState.Voided(Fixtures.voidedReceipt).isSettled)
         assertTrue(PaymentState.Failed(PaymentError.Network).isSettled)
 
         assertFalse(PaymentState.Idle.isSettled)

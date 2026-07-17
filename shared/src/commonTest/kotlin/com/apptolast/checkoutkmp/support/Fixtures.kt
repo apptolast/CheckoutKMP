@@ -50,6 +50,9 @@ object Fixtures {
 
     val refundedReceipt = capturedReceipt.copy(refundedAt = Instant.fromEpochSeconds(1_700_000_200))
 
+    /** An authorization whose hold was released without charging. */
+    val voidedReceipt = receipt.copy(voidedAt = Instant.fromEpochSeconds(1_700_000_150))
+
     val challenge = ScaChallenge(challengeId = "ch_1", deliveryHint = "•••• 90", otpLength = 6)
 
     /** Gift card that covers only part of [amount] (10.50 EUR total, 4.00 EUR balance). */

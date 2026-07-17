@@ -120,4 +120,40 @@ class CheckoutViewModelCaptureTest {
         assertIs<CheckoutStatus.Captured>(vm.state.value.status)
         assertEquals(1, psp.captureCount)
     }
+
+    @Test
+    fun cancelling_the_order_voids_the_authorization_without_charging() = runTest {
+        val (psp, vm) = newViewModel()
+        vm.onIntent(CheckoutIntent.Submit(validCard))
+        advanceUntilIdle()
+
+        vm.onIntent(CheckoutIntent.Void)
+        advanceUntilIdle()
+
+        val status = assertIs<CheckoutStatus.Voided>(vm.state.value.status)
+        assertNotNull(status.receipt.voidedAt)
+        assertEquals(1, psp.voidCount)
+        assertEquals(0, psp.captureCount, "a cancelled order must never charge the customer")
+    }
+
+    @Test
+    fun retrying_a_failed_void_releases_exactly_once() = runTest {
+        val (psp, vm) = newViewModel()
+        vm.onIntent(CheckoutIntent.Submit(validCard))
+        advanceUntilIdle()
+
+        psp.scenario = PaymentScenario.NETWORK_ERROR
+        vm.onIntent(CheckoutIntent.Void)
+        advanceUntilIdle()
+        // The receipt stays on screen with an inline error; retry reuses the same void key.
+        val failed = assertIs<CheckoutStatus.Authorized>(vm.state.value.status)
+        assertNotNull(failed.voidError)
+
+        psp.scenario = PaymentScenario.APPROVED
+        vm.onIntent(CheckoutIntent.Void)
+        advanceUntilIdle()
+
+        assertIs<CheckoutStatus.Voided>(vm.state.value.status)
+        assertEquals(1, psp.voidCount)
+    }
 }
