@@ -50,6 +50,24 @@ class CheckoutViewModel(
     private val _state = MutableStateFlow(initialState)
     val state: StateFlow<CheckoutState> = _state.asStateFlow()
 
+    /**
+     * Applies a settlement-bearing status change and records its receipt in the order history —
+     * the single funnel for outcomes, so every lifecycle step (authorize, capture, void, refund)
+     * updates the same order.
+     */
+    private fun applyStatus(newStatus: CheckoutStatus) {
+        newStatus.receiptOrNull()?.let { useCases.recordOrder(it) }
+        _state.update { it.copy(status = newStatus) }
+    }
+
+    private fun CheckoutStatus.receiptOrNull() = when (this) {
+        is CheckoutStatus.Authorized -> receipt
+        is CheckoutStatus.Captured -> receipt
+        is CheckoutStatus.Refunded -> receipt
+        is CheckoutStatus.Voided -> receipt
+        else -> null
+    }
+
     /** The in-flight card request, reused (same IdempotencyKey) to complete SCA and to retry. */
     private var pendingRequest: PaymentRequest? = null
 
@@ -219,7 +237,7 @@ class CheckoutViewModel(
                         paymentState.toCheckoutStatus()
                     }
                 }
-                _state.update { it.copy(status = newStatus) }
+                applyStatus(newStatus)
             }
         }
     }
@@ -256,7 +274,7 @@ class CheckoutViewModel(
     private fun authorize(request: PaymentRequest) {
         viewModelScope.launch {
             useCases.processPayment(request).collect { paymentState ->
-                _state.update { it.copy(status = paymentState.toCheckoutStatus()) }
+                applyStatus(paymentState.toCheckoutStatus())
             }
         }
     }
@@ -289,7 +307,7 @@ class CheckoutViewModel(
                             // Transient failure / SCA pending: keep the redemption for retry or abandon.
                             else -> Unit
                         }
-                        _state.update { it.copy(status = paymentState.toCheckoutStatus()) }
+                        applyStatus(paymentState.toCheckoutStatus())
                     }
                 }
             }
@@ -325,7 +343,7 @@ class CheckoutViewModel(
                 // The capture use case only settles or fails; anything else leaves the receipt as-is.
                 else -> current.copy(isCapturing = false)
             }
-            _state.update { it.copy(status = newStatus) }
+            applyStatus(newStatus)
         }
     }
 
@@ -349,7 +367,7 @@ class CheckoutViewModel(
 
                 else -> current.copy(isVoiding = false)
             }
-            _state.update { it.copy(status = newStatus) }
+            applyStatus(newStatus)
         }
     }
 
@@ -371,7 +389,7 @@ class CheckoutViewModel(
             } else {
                 refundCardThenGiftCard(current)
             }
-            _state.update { it.copy(status = newStatus) }
+            applyStatus(newStatus)
         }
     }
 
@@ -459,7 +477,7 @@ class CheckoutViewModel(
                             CheckoutStatus.Failed(paymentState.error)
                         }
                 }
-                _state.update { it.copy(status = newStatus) }
+                applyStatus(newStatus)
             }
         }
     }

@@ -2,6 +2,8 @@ package com.apptolast.checkoutkmp.domain.di
 
 import com.apptolast.checkoutkmp.domain.usecase.ApplyGiftCardUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CapturePaymentUseCase
+import com.apptolast.checkoutkmp.domain.usecase.ObserveOrderHistoryUseCase
+import com.apptolast.checkoutkmp.domain.usecase.RecordOrderUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CompleteRedirectUseCase
 import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
@@ -27,4 +29,6 @@ val domainModule = module {
     factory { ProcessSplitPaymentUseCase(giftCards = get(), repository = get()) }
     factory { ApplyGiftCardUseCase(get()) }
     factory { ReverseGiftCardRedemptionUseCase(get()) }
+    factory { RecordOrderUseCase(get()) }
+    factory { ObserveOrderHistoryUseCase(get()) }
 }

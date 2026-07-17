@@ -33,6 +33,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -86,9 +87,12 @@ private const val ENTER_SLIDE_FRACTION = 8
 // it is only warranted when composition/draw order diverges from the desired focus order.
 
 @Composable
-fun CheckoutRoute(viewModel: CheckoutViewModel = koinViewModel()) {
+fun CheckoutRoute(
+    onOpenHistory: () -> Unit = {},
+    viewModel: CheckoutViewModel = koinViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    CheckoutScreen(state = state, onIntent = viewModel::onIntent)
+    CheckoutScreen(state = state, onIntent = viewModel::onIntent, onOpenHistory = onOpenHistory)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,6 +100,7 @@ fun CheckoutRoute(viewModel: CheckoutViewModel = koinViewModel()) {
 fun CheckoutScreen(
     state: CheckoutState,
     onIntent: (CheckoutIntent) -> Unit,
+    onOpenHistory: () -> Unit = {},
 ) {
     val strings = LocalStrings.current
     Scaffold(
@@ -110,9 +115,19 @@ fun CheckoutScreen(
                         modifier = Modifier.padding(horizontal = Dimens.spacingMedium).size(Dimens.iconMedium),
                     )
                 },
+                actions = {
+                    IconButton(onClick = onOpenHistory) {
+                        Icon(
+                            CheckoutIcons.History,
+                            contentDescription = strings.orderHistory,
+                            modifier = Modifier.size(Dimens.iconMedium),
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     titleContentColor = MaterialTheme.colorScheme.primary,
                     navigationIconContentColor = MaterialTheme.colorScheme.primary,
+                    actionIconContentColor = MaterialTheme.colorScheme.primary,
                 ),
             )
         },

@@ -87,6 +87,15 @@ interface Strings {
     val paymentId: String
     val newPayment: String
 
+    // Order history
+    val orderHistory: String
+    val back: String
+    val emptyHistory: String
+    val statusAuthorized: String
+    val statusCaptured: String
+    val statusRefunded: String
+    val statusVoided: String
+
     // Failure
     val paymentFailed: String
     val retry: String
@@ -182,6 +191,14 @@ object EnStrings : Strings {
     override val paymentId = "Payment id"
     override val newPayment = "New payment"
 
+    override val orderHistory = "Order history"
+    override val back = "Back"
+    override val emptyHistory = "No orders yet — completed payments will show up here."
+    override val statusAuthorized = "Authorized"
+    override val statusCaptured = "Charged"
+    override val statusRefunded = "Refunded"
+    override val statusVoided = "Cancelled"
+
     override val paymentFailed = "Payment failed"
     override val retry = "Retry"
     override val startOver = "Start over"
@@ -275,6 +292,14 @@ object EsStrings : Strings {
     override val authCode = "Código de autorización"
     override val paymentId = "ID de pago"
     override val newPayment = "Nuevo pago"
+
+    override val orderHistory = "Histórico de pedidos"
+    override val back = "Atrás"
+    override val emptyHistory = "Aún no hay pedidos: los pagos completados aparecerán aquí."
+    override val statusAuthorized = "Autorizado"
+    override val statusCaptured = "Cobrado"
+    override val statusRefunded = "Reembolsado"
+    override val statusVoided = "Cancelado"
 
     override val paymentFailed = "Pago fallido"
     override val retry = "Reintentar"

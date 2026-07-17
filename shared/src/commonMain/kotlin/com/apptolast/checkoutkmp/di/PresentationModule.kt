@@ -5,6 +5,7 @@ import com.apptolast.checkoutkmp.domain.model.Currency
 import com.apptolast.checkoutkmp.presentation.CheckoutState
 import com.apptolast.checkoutkmp.presentation.CheckoutUseCases
 import com.apptolast.checkoutkmp.presentation.CheckoutViewModel
+import com.apptolast.checkoutkmp.presentation.HistoryViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -24,6 +25,7 @@ val presentationModule = module {
             processSplitPayment = get(),
             applyGiftCard = get(),
             reverseGiftCard = get(),
+            recordOrder = get(),
         )
     }
     viewModel {
@@ -34,4 +36,5 @@ val presentationModule = module {
             initialState = CheckoutState(amount = demoAmount),
         )
     }
+    viewModel { HistoryViewModel(observeOrderHistory = get()) }
 }
