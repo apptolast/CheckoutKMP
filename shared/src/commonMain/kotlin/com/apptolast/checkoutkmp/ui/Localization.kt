@@ -33,6 +33,10 @@ interface Strings {
     val cardNumber: String
     val expiryMmYy: String
     val cvv: String
+    val checkCardNumber: String
+    val cardExpired: String
+    val checkExpiry: String
+    val checkCvv: String
     fun pay(amount: String): String
 
     // Card brand / masked card
@@ -90,6 +94,10 @@ object EnStrings : Strings {
     override val cardNumber = "Card number"
     override val expiryMmYy = "MM/YY"
     override val cvv = "CVV"
+    override val checkCardNumber = "Check the card number"
+    override val cardExpired = "This card has expired"
+    override val checkExpiry = "Enter a valid date (MM/YY)"
+    override val checkCvv = "Check the CVV"
     override fun pay(amount: String) = "Pay $amount"
 
     override val card = "Card"
@@ -144,6 +152,10 @@ object EsStrings : Strings {
     override val cardNumber = "Número de tarjeta"
     override val expiryMmYy = "MM/AA"
     override val cvv = "CVV"
+    override val checkCardNumber = "Revisa el número de tarjeta"
+    override val cardExpired = "La tarjeta está caducada"
+    override val checkExpiry = "Introduce una fecha válida (MM/AA)"
+    override val checkCvv = "Revisa el CVV"
     override fun pay(amount: String) = "Pagar $amount"
 
     override val card = "Tarjeta"
