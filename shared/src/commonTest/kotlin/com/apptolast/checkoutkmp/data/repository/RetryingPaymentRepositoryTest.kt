@@ -94,6 +94,45 @@ class RetryingPaymentRepositoryTest {
     }
 
     @Test
+    fun retries_a_transient_capture_failure_with_the_same_key() = runTest {
+        var calls = 0
+        val delegate = FakePaymentRepository(onCapture = { receipt, _ ->
+            calls++
+            if (calls < 2) PaymentResult.Failed(PaymentError.Network)
+            else PaymentResult.Captured(receipt.copy(capturedAt = Fixtures.capturedReceipt.capturedAt))
+        })
+        val key = IdempotencyKey.random()
+
+        val result = retrying(delegate).capture(Fixtures.receipt, key)
+
+        assertIs<PaymentResult.Captured>(result)
+        assertEquals(2, delegate.captureCalls.size)
+        assertEquals(setOf(key), delegate.captureCalls.map { it.second }.toSet())
+    }
+
+    @Test
+    fun retries_a_transient_refund_failure_with_the_same_key() = runTest {
+        val delegate = FakePaymentRepository(onRefund = { _, _ -> PaymentResult.Failed(PaymentError.Timeout) })
+        val key = IdempotencyKey.random()
+
+        retrying(delegate).refund(Fixtures.capturedReceipt, key)
+
+        assertEquals(4, delegate.refundCalls.size) // 1 initial + maxRetries(3)
+        assertEquals(setOf(key), delegate.refundCalls.map { it.second }.toSet())
+    }
+
+    @Test
+    fun does_not_retry_a_declined_capture() = runTest {
+        val delegate = FakePaymentRepository(
+            onCapture = { _, _ -> PaymentResult.Failed(PaymentError.Declined("already_captured")) },
+        )
+
+        retrying(delegate).capture(Fixtures.receipt, IdempotencyKey.random())
+
+        assertEquals(1, delegate.captureCalls.size)
+    }
+
+    @Test
     fun backs_off_exponentially_between_retries() = runTest {
         val delays = mutableListOf<Duration>()
         val delegate = FakePaymentRepository(onAuthorize = { PaymentResult.Failed(PaymentError.Network) })
