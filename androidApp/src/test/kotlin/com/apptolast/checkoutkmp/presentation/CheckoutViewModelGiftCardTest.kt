@@ -163,6 +163,50 @@ class CheckoutViewModelGiftCardTest {
     }
 
     @Test
+    fun retrying_a_transient_split_failure_replays_the_redemption_idempotently() = runTest {
+        val (_, store, vm) = newViewModel()
+        vm.onIntent(CheckoutIntent.ApplyGiftCard("GIFT25"))
+        advanceUntilIdle()
+
+        // The card leg fails in transit after the balance was consumed...
+        vm.onIntent(CheckoutIntent.SelectScenario(PaymentScenario.NETWORK_ERROR))
+        vm.onIntent(CheckoutIntent.Submit(validCard))
+        advanceUntilIdle()
+        assertIs<CheckoutStatus.Failed>(vm.state.value.status)
+        assertEquals(Amount(0, Currency.EUR), store.balanceOf("GIFT25"), "no compensation for transients")
+
+        // ...and the retry re-runs the whole saga with the same keys: the redemption replays,
+        // only the card charge actually retries.
+        vm.onIntent(CheckoutIntent.SelectScenario(PaymentScenario.APPROVED))
+        vm.onIntent(CheckoutIntent.Retry)
+        advanceUntilIdle()
+
+        val status = assertIs<CheckoutStatus.Authorized>(vm.state.value.status)
+        assertNotNull(status.receipt.giftCard)
+        assertEquals(1, store.redemptionCount, "the balance must not be consumed twice")
+        assertEquals(0, store.reversalCount)
+    }
+
+    @Test
+    fun abandoning_a_transient_split_failure_restores_the_balance() = runTest {
+        val (_, store, vm) = newViewModel()
+        vm.onIntent(CheckoutIntent.ApplyGiftCard("GIFT25"))
+        advanceUntilIdle()
+        vm.onIntent(CheckoutIntent.SelectScenario(PaymentScenario.NETWORK_ERROR))
+        vm.onIntent(CheckoutIntent.Submit(validCard))
+        advanceUntilIdle()
+        assertIs<CheckoutStatus.Failed>(vm.state.value.status)
+
+        // Giving up on the attempt compensates the consumed-but-unsettled redemption.
+        vm.onIntent(CheckoutIntent.Reset)
+        advanceUntilIdle()
+
+        assertEquals(CheckoutStatus.Editing, vm.state.value.status)
+        assertEquals(balance, store.balanceOf("GIFT25"))
+        assertEquals(1, store.reversalCount)
+    }
+
+    @Test
     fun refunding_a_split_payment_returns_both_tenders() = runTest {
         val (psp, store, vm) = newViewModel()
         vm.onIntent(CheckoutIntent.ApplyGiftCard("GIFT25"))

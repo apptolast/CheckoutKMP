@@ -33,4 +33,34 @@ class AmountTest {
     fun rejects_negative_amounts() {
         assertFailsWith<IllegalArgumentException> { Amount(-1, Currency.EUR) }
     }
+
+    @Test
+    fun adds_and_subtracts_same_currency_amounts() {
+        assertEquals(Amount(1500, Currency.EUR), Amount(1050, Currency.EUR) + Amount(450, Currency.EUR))
+        assertEquals(Amount(600, Currency.EUR), Amount(1050, Currency.EUR) - Amount(450, Currency.EUR))
+    }
+
+    @Test
+    fun subtraction_cannot_go_below_zero() {
+        assertFailsWith<IllegalArgumentException> { Amount(100, Currency.EUR) - Amount(200, Currency.EUR) }
+    }
+
+    @Test
+    fun arithmetic_rejects_mixed_currencies() {
+        assertFailsWith<IllegalArgumentException> { Amount(100, Currency.EUR) + Amount(100, Currency.USD) }
+        assertFailsWith<IllegalArgumentException> { Amount(100, Currency.EUR) - Amount(50, Currency.USD) }
+        assertFailsWith<IllegalArgumentException> { Amount(100, Currency.EUR).coerceAtMost(Amount(50, Currency.USD)) }
+    }
+
+    @Test
+    fun coerce_at_most_caps_at_the_smaller_amount() {
+        assertEquals(Amount(50, Currency.EUR), Amount(100, Currency.EUR).coerceAtMost(Amount(50, Currency.EUR)))
+        assertEquals(Amount(50, Currency.EUR), Amount(50, Currency.EUR).coerceAtMost(Amount(100, Currency.EUR)))
+    }
+
+    @Test
+    fun is_zero_only_for_zero_minor_units() {
+        assertEquals(true, Amount(0, Currency.EUR).isZero)
+        assertEquals(false, Amount(1, Currency.EUR).isZero)
+    }
 }

@@ -12,6 +12,7 @@ import com.apptolast.checkoutkmp.domain.model.Currency
 import com.apptolast.checkoutkmp.domain.model.IdempotencyKey
 import com.apptolast.checkoutkmp.domain.model.PaymentMethod
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
+import com.apptolast.checkoutkmp.domain.model.PaymentResult
 import com.apptolast.checkoutkmp.domain.model.PaymentState
 import com.apptolast.checkoutkmp.domain.model.toPaymentState
 import kotlinx.coroutines.test.runTest
@@ -60,13 +61,23 @@ class GoldenRuleTest {
             idempotencyKey = IdempotencyKey.random(),
         )
 
-        val approved = PaymentRepositoryImpl(FakePsp(scenario = PaymentScenario.APPROVED)).authorize(request)
+        // Drive a full retail lifecycle so every state that carries a receipt gets checked.
+        val repo = PaymentRepositoryImpl(FakePsp(scenario = PaymentScenario.APPROVED))
+        val authorized = repo.authorize(request)
+        val receipt = assertIs<PaymentResult.Authorized>(authorized).receipt
+        val captured = repo.capture(receipt, IdempotencyKey.random())
+        val refunded = repo.refund(
+            assertIs<PaymentResult.Captured>(captured).receipt,
+            IdempotencyKey.random(),
+        )
         val challenge = PaymentRepositoryImpl(FakePsp(scenario = PaymentScenario.NEEDS_SCA)).authorize(request)
 
         val states = listOf(
             PaymentState.Idle,
             PaymentState.Processing,
-            approved.toPaymentState(),
+            authorized.toPaymentState(),
+            captured.toPaymentState(),
+            refunded.toPaymentState(),
             challenge.toPaymentState(),
         )
         states.forEach { assertNoPan(it.toString()) }
