@@ -1,5 +1,6 @@
 package com.apptolast.checkoutkmp.ui
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -76,7 +78,12 @@ fun CardForm(
             value = pan,
             onValueChange = { pan = digitsOnly(it, max = CardRules.PAN_LENGTHS.last) },
             label = { Text(strings.cardNumber) },
-            leadingIcon = { FieldIcon(CheckoutIcons.CreditCard) },
+            leadingIcon = {
+                // The mark follows the detected brand; Crossfade keeps the swap subtle. It is
+                // purely decorative (contentDescription = null) — the brand is announced by the
+                // supporting text below, so nothing is double-spoken.
+                Crossfade(targetState = brand) { detected -> FieldIcon(brandIcon(detected)) }
+            },
             supportingText = {
                 if (panError) Text(strings.checkCardNumber) else CardBrandSupportingText(brand, pan)
             },
@@ -178,9 +185,18 @@ private class TouchedState {
     }
 }
 
+/** The abstract letter mark for a detected brand; [CardBrand.UNKNOWN] keeps the generic card. */
+private fun brandIcon(brand: CardBrand): ImageVector = when (brand) {
+    CardBrand.VISA -> CheckoutIcons.BrandVisa
+    CardBrand.MASTERCARD -> CheckoutIcons.BrandMastercard
+    CardBrand.AMEX -> CheckoutIcons.BrandAmex
+    CardBrand.DISCOVER -> CheckoutIcons.BrandDiscover
+    CardBrand.UNKNOWN -> CheckoutIcons.CreditCard
+}
+
 /** A muted leading icon shared by the card fields. */
 @Composable
-private fun FieldIcon(icon: androidx.compose.ui.graphics.vector.ImageVector) {
+private fun FieldIcon(icon: ImageVector) {
     Icon(
         icon,
         contentDescription = null,

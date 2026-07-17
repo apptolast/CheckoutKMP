@@ -84,6 +84,37 @@ object CheckoutIcons {
         }
     }
 
+    // Per-brand marks for the card number field. Deliberately abstract monochrome letter glyphs —
+    // NOT the trademarked network logos — so they tint from the theme like every other icon.
+
+    /** Stylized "V" letter mark shown while a Visa number is being typed. */
+    val BrandVisa: ImageVector by lazy {
+        icon("BrandVisa") {
+            "M6.5 6h2.3l3.2 9.7L15.2 6h2.3l-4.1 12h-2.8L6.5 6z"
+        }
+    }
+
+    /** Stylized "M" letter mark shown while a Mastercard number is being typed. */
+    val BrandMastercard: ImageVector by lazy {
+        icon("BrandMastercard") {
+            "M5 18V6h2.6l4.4 7.4L16.4 6H19v12h-2.2V9.9l-3.9 6.4h-1.8L7.2 9.9V18H5z"
+        }
+    }
+
+    /** Stylized "A" letter mark shown while an American Express number is being typed. */
+    val BrandAmex: ImageVector by lazy {
+        icon("BrandAmex") {
+            "M10.9 6h2.2l4.4 12h-2.3l-0.95 -2.6H9.75L8.8 18H6.5L10.9 6zm1.1 3.2l-1.6 4.3h3.2L12 9.2z"
+        }
+    }
+
+    /** Stylized "D" letter mark shown while a Discover number is being typed. */
+    val BrandDiscover: ImageVector by lazy {
+        icon("BrandDiscover") {
+            "M7 6h4.3c3.7 0 6.2 2.4 6.2 6s-2.5 6-6.2 6H7V6zm2.2 2.1v7.8h2.1c2.4 0 3.9-1.4 3.9-3.9s-1.5-3.9-3.9-3.9H9.2z"
+        }
+    }
+
     /** Clock with a rewind arrow — opens the session's order history. */
     val History: ImageVector by lazy {
         icon("History") {
