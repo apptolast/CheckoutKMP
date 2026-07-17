@@ -85,6 +85,10 @@ interface Strings {
     val voidingPayment: String
     val authCode: String
     val paymentId: String
+    val date: String
+
+    /** Month abbreviations, January first, used to format the receipt date. */
+    val monthAbbreviations: List<String>
     val newPayment: String
 
     // Order history
@@ -191,6 +195,9 @@ object EnStrings : Strings {
     override val voidingPayment = "Releasing hold…"
     override val authCode = "Auth code"
     override val paymentId = "Payment id"
+    override val date = "Date"
+    override val monthAbbreviations =
+        listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
     override val newPayment = "New payment"
 
     override val orderHistory = "Order history"
@@ -295,6 +302,9 @@ object EsStrings : Strings {
     override val voidingPayment = "Liberando retención…"
     override val authCode = "Código de autorización"
     override val paymentId = "ID de pago"
+    override val date = "Fecha"
+    override val monthAbbreviations =
+        listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
     override val newPayment = "Nuevo pago"
 
     override val orderHistory = "Histórico de pedidos"

@@ -100,12 +100,16 @@ class PaymentRepositoryImpl(
         pspPaymentId: String,
         authCode: String,
         capturedAt: kotlin.time.Instant? = null,
-    ): Receipt = Receipt(
-        paymentId = pspPaymentId,
-        amount = request.amount,
-        method = request.method,
-        authorizedAt = clock.now(),
-        authCode = authCode,
-        capturedAt = capturedAt,
-    )
+    ): Receipt {
+        val now = clock.now()
+        return Receipt(
+            paymentId = pspPaymentId,
+            amount = request.amount,
+            method = request.method,
+            createdAt = now,
+            authorizedAt = now,
+            authCode = authCode,
+            capturedAt = capturedAt,
+        )
+    }
 }

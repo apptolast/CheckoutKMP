@@ -14,11 +14,15 @@ import kotlin.time.Instant
  * [giftCard] records the gift-card tender of a split payment (or the whole payment when [method]
  * is [PaymentMethod.GiftCard]); its redemption id is the handle used to return that balance.
  * [authCode] is `null` for tenders that have no issuer authorization code (gift cards).
+ *
+ * [createdAt] is when the receipt itself was issued (stamped at the data boundary by the same
+ * injected clock as the settlement timestamps), shown to the user as the payment date.
  */
 data class Receipt(
     val paymentId: String,
     val amount: Amount,
     val method: PaymentMethod,
+    val createdAt: Instant,
     val authorizedAt: Instant,
     val authCode: String?,
     val capturedAt: Instant? = null,

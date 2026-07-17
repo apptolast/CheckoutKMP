@@ -42,6 +42,7 @@ object Fixtures {
         paymentId = "pay_123",
         amount = amount,
         method = method,
+        createdAt = Instant.fromEpochSeconds(1_700_000_000),
         authorizedAt = Instant.fromEpochSeconds(1_700_000_000),
         authCode = "AUTH42",
     )

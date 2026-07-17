@@ -95,6 +95,7 @@ class ProcessSplitPaymentUseCase(
         paymentId = redemption.redemptionId,
         amount = total,
         method = PaymentMethod.GiftCard(redemption.code),
+        createdAt = redemption.redeemedAt,
         authorizedAt = redemption.redeemedAt,
         authCode = null,
         capturedAt = redemption.redeemedAt,
