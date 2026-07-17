@@ -143,9 +143,12 @@ Material3 claro/oscuro + set de iconos propio) verificado en emulador en los cua
     dominio; `InMemoryOrderHistory` en data, sesión). El registro hace **upsert por `paymentId`**:
     capturas, reembolsos y voids actualizan el mismo pedido, ordenado por última actualización. El
     estado mostrado se **deriva del recibo** (`Receipt.settlement`: autorizado/cobrado/reembolsado/
-    cancelado). Pantalla de histórico navegable desde el checkout (sin librería de navegación: dos
-    pantallas, un flag izado en `App()`), con lista, importe, método y fecha; recibos PCI-safe por
-    construcción, así que el histórico tampoco contiene nunca un PAN.
+    cancelado). Pantalla de histórico navegable desde el checkout (sin librería de navegación: la
+    selección vive izada en la ruta), con lista, importe, método y fecha, y **detalle por pedido**
+    al tocar una fila: mismo recibo itemizado del checkout + **cronología** del ciclo de vida
+    (autorizado/cobrado/reembolsado/cancelado con sus fechas), seleccionado por `paymentId` para
+    seguir "vivo" si el pedido cambia. Recibos PCI-safe por construcción: el histórico tampoco
+    contiene nunca un PAN.
 
 ## Máquina de estados del pago
 
