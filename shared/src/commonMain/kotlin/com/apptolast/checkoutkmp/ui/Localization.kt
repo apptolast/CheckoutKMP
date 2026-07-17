@@ -89,6 +89,8 @@ interface Strings {
 
     // Order history
     val orderHistory: String
+    val orderDetail: String
+    val timeline: String
     val back: String
     val emptyHistory: String
     val statusAuthorized: String
@@ -192,6 +194,8 @@ object EnStrings : Strings {
     override val newPayment = "New payment"
 
     override val orderHistory = "Order history"
+    override val orderDetail = "Order detail"
+    override val timeline = "Timeline"
     override val back = "Back"
     override val emptyHistory = "No orders yet — completed payments will show up here."
     override val statusAuthorized = "Authorized"
@@ -294,6 +298,8 @@ object EsStrings : Strings {
     override val newPayment = "Nuevo pago"
 
     override val orderHistory = "Histórico de pedidos"
+    override val orderDetail = "Detalle del pedido"
+    override val timeline = "Cronología"
     override val back = "Atrás"
     override val emptyHistory = "Aún no hay pedidos: los pagos completados aparecerán aquí."
     override val statusAuthorized = "Autorizado"

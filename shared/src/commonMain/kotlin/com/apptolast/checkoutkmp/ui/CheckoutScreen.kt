@@ -864,9 +864,10 @@ private fun SettlementAction(
     }
 }
 
-/** The itemised receipt card: tenders (method + gift card), auth code and payment id. */
+/** The itemised receipt card: tenders (method + gift card), auth code and payment id.
+ *  Shared with the order-detail screen, which shows the same card for a past payment. */
 @Composable
-private fun ReceiptDetails(receipt: Receipt) {
+internal fun ReceiptDetails(receipt: Receipt) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(Dimens.spacingLarge),
