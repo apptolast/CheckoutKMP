@@ -19,11 +19,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -97,7 +99,11 @@ fun CardForm(
             visualTransformation = CardNumberVisualTransformation(),
             modifier = Modifier
                 .fillMaxWidth()
-                .onFocusChanged { panTouched.onFocusChanged(it.isFocused) },
+                .onFocusChanged { panTouched.onFocusChanged(it.isFocused) }
+                // Autofill only: lets the platform offer a saved card. The filled value goes
+                // through onValueChange like typed input, so it is digit-stripped and stays in
+                // this composable's local state — the PAN still never reaches any shared state.
+                .semantics { contentType = ContentType.CreditCardNumber },
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
@@ -134,7 +140,8 @@ fun CardForm(
                 visualTransformation = ExpiryVisualTransformation(),
                 modifier = Modifier
                     .weight(1f)
-                    .onFocusChanged { expiryTouched.onFocusChanged(it.isFocused) },
+                    .onFocusChanged { expiryTouched.onFocusChanged(it.isFocused) }
+                    .semantics { contentType = ContentType.CreditCardExpirationDate },
             )
             OutlinedTextField(
                 value = cvv,
@@ -153,7 +160,8 @@ fun CardForm(
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier
                     .weight(1f)
-                    .onFocusChanged { cvvTouched.onFocusChanged(it.isFocused) },
+                    .onFocusChanged { cvvTouched.onFocusChanged(it.isFocused) }
+                    .semantics { contentType = ContentType.CreditCardSecurityCode },
             )
         }
 
