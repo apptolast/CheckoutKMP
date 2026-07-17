@@ -15,6 +15,7 @@ import com.apptolast.checkoutkmp.domain.model.ScaChallenge
 import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
 import kotlinx.coroutines.CancellationException
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * [PaymentRepository] backed by a [Psp]. This is the **boundary**: raw PSP responses and
@@ -109,7 +110,7 @@ class PaymentRepositoryImpl(
         request: PaymentRequest,
         pspPaymentId: String,
         authCode: String,
-        capturedAt: kotlin.time.Instant? = null,
+        capturedAt: Instant? = null,
     ): Receipt {
         val now = clock.now()
         return Receipt(

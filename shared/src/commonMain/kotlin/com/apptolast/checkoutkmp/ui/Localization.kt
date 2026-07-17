@@ -136,7 +136,6 @@ interface Strings {
     val threeDSecureVerification: String
     fun enterCodeSentTo(otpLength: Int, target: String): String
     val demoCode: String
-    val verificationCode: String
 
     /** Spoken description of the one-field OTP entry: "Verification code, 3 of 6 digits entered". */
     fun verificationCodeProgress(entered: Int, total: Int): String
@@ -261,7 +260,6 @@ object EnStrings : Strings {
     override fun enterCodeSentTo(otpLength: Int, target: String) =
         "Enter the $otpLength-digit code sent to $target."
     override val demoCode = "Demo code"
-    override val verificationCode = "Verification code"
     override fun verificationCodeProgress(entered: Int, total: Int) =
         "Verification code, $entered of $total digits entered"
     override val incorrectCode = "Incorrect code, try again."
@@ -383,7 +381,6 @@ object EsStrings : Strings {
     override fun enterCodeSentTo(otpLength: Int, target: String) =
         "Introduce el código de $otpLength dígitos enviado a $target."
     override val demoCode = "Código demo"
-    override val verificationCode = "Código de verificación"
     override fun verificationCodeProgress(entered: Int, total: Int) =
         "Código de verificación, $entered de $total dígitos introducidos"
     override val incorrectCode = "Código incorrecto, inténtalo de nuevo."

@@ -25,9 +25,10 @@ e iOS son hosts finos.
 
 ```
 :shared / commonMain
-  ui/            Compose Multiplatform: App() = KoinContext { MaterialTheme { CheckoutRoute() } },
-                 CheckoutScreen, CardForm, ScaChallengeScreen, Dimens, BrandLabel,
-                 Localization (tr(en, es) + expect deviceLanguageCode())
+  ui/            Compose Multiplatform: App() = KoinContext { CheckoutTheme { CheckoutRoute()/HistoryRoute() } },
+                 CheckoutScreen, CardForm, ScaChallengeScreen, RedirectApprovalScreen, HistoryScreen,
+                 PayCta, CheckoutIcons, Theme, Dimens, BrandLabel, ClipboardSupport (expect/actual),
+                 Localization (Strings catalog + LocalStrings.current + expect deviceLanguageCode())
   presentation/  MVI: CheckoutState (inmutable, sin PAN), CheckoutIntent, CheckoutViewModel
   di/            initKoin() común + presentationModule
   domain/
@@ -71,8 +72,10 @@ iosApp        host fino: ComposeView monta MainViewControllerKt.MainViewControll
 - El ViewModel reduce `Intent + estado actual → nuevo estado`, llamando a casos de uso.
 - Validación en vivo (Luhn, formateo, enmascarado): PAN/CVV solo en estado local del composable
   (`remember`, no `rememberSaveable`); salen únicamente vía el intent `Submit` y se tokenizan al enviar.
-- **i18n en Kotlin**, NO Compose resources: usar `tr("English", "Español")` (el plugin KMP-library de
-  AGP 9 no empaqueta los Compose resources — ver memoria `compose-resources-agp9-limitation`).
+- **i18n en Kotlin**, NO Compose resources: catálogo type-safe `Strings` (`EnStrings`/`EsStrings`, un
+  miembro por texto) leído con `LocalStrings.current`; `stringsFor(deviceLanguageCode())` elige idioma.
+  El plugin KMP-library de AGP 9 no empaqueta los Compose resources — ver memoria
+  `compose-resources-agp9-limitation`.
 - **Accesibilidad**: `liveRegion` para anuncios, `contentDescription` limpio, headings; sin
   `traversalIndex` (los layouts son lineales). Marcas reales = nombres propios; solo `UNKNOWN` se localiza.
 
@@ -124,7 +127,7 @@ iosApp        host fino: ComposeView monta MainViewControllerKt.MainViewControll
 ## Estrategia de ramas y commits
 
 - `main` protegida conceptualmente: siempre verde (compila + tests). **Historia lineal, sin merge commits.**
-- Una rama por trabajo (`feat/...`, `refactor/...`). Las 8 fases originales ya están en `main`.
+- Una rama por trabajo (`feat/...`, `refactor/...`). Las fases 1–15 ya están en `main`.
 - **Conventional Commits:** `feat:`, `test:`, `refactor:`, `docs:`, `chore:`. Commits pequeños.
 - Al terminar: ejecutar tests; si pasan, **pedir OK** y mergear con `git merge --ff-only` (fast-forward).
   No mergear a `main` sin confirmación explícita. `gh` no está instalado → merges por CLI, no por PR.

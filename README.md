@@ -39,8 +39,9 @@ Clean Architecture con la lógica de negocio 100 % en Kotlin común (sin Android
   (`PaymentRepository`, `CardTokenizer`). **data** los implementa. Regla de dependencia:
   `data → domain ← presentation` (nada apunta hacia data).
 - **DI** con **Koin** (`koin-compose` multiplataforma; `initKoin()` común, `androidContext` en la app).
-- **i18n en Kotlin** (`tr(en, es)` + `expect deviceLanguageCode()`): los Compose *resources* no los
-  empaqueta el plugin KMP-library de AGP 9, así que la localización EN/ES se hace en código.
+- **i18n en Kotlin** (catálogo type-safe `Strings` + `LocalStrings.current` + `expect deviceLanguageCode()`):
+  los Compose *resources* no los empaqueta el plugin KMP-library de AGP 9, así que la localización EN/ES
+  se hace en código.
 - Targets **iOS activados** (`iosArm64` + `iosSimulatorArm64`, framework `Shared`); `iosMain` aporta
   `MainViewController` (Compose) e `initKoinIos`. La compilación/enlazado Apple **requiere macOS + Xcode**.
 
@@ -107,7 +108,7 @@ lineal) tras pasar los tests. `main` siempre compila y pasa tests. **Todas las f
 duplicaciones (`CardRules`, `DemoDefaults`, `ScaChallenge`); y **rediseño de UI de marca** (tema
 Material3 claro/oscuro + set de iconos propio) verificado en emulador en los cuatro estados.
 
-**Roadmap retail e-commerce** (fases 9–12, checkout tipo moda/retail):
+**Roadmap retail e-commerce** (fases 9–14, checkout tipo moda/retail):
 
 9. ✅ **Autorización vs captura** — en retail se **autoriza** en el checkout (fondos retenidos) y se
    **captura** al enviar el pedido. `PaymentState` separa `Authorized` / `Captured` / `Refunded`;
@@ -149,6 +150,14 @@ Material3 claro/oscuro + set de iconos propio) verificado en emulador en los cua
     (autorizado/cobrado/reembolsado/cancelado con sus fechas), seleccionado por `paymentId` para
     seguir "vivo" si el pedido cambia. Recibos PCI-safe por construcción: el histórico tampoco
     contiene nunca un PAN.
+
+**Ronda de pulido UX** (misma disciplina de rama + `--ff-only`, verificada en emulador): fecha/hora
+en el recibo (`Receipt.createdAt` vía el seam de `Clock`); **OTP de 3D Secure en celdas segmentadas**
+sobre un único `BasicTextField` (se anuncia como un solo campo) con **reenvío de código** y cuenta
+atrás gobernada por el ViewModel; **autofill** (`ContentType` de tarjeta/caducidad/CVV y SMS-OTP);
+**copiar al portapapeles** el `paymentId`/`authCode` del recibo (expect/actual, solo identificadores);
+icono de marca dinámico en el campo de tarjeta; y unificación de los CTA de pago en `PayCta` con el
+importe en todos los botones.
 
 ## Máquina de estados del pago
 
@@ -192,7 +201,7 @@ con la **misma** `IdempotencyKey`.
 - **3D Secure / SCA:** máquina de estados que modela el challenge y su resolución (éxito/fallo/cancelación).
 - **Validación de tarjeta:** algoritmo de **Luhn** y control de caducidad, testeados en `commonTest`.
 - **Lógica compartida y testeada:** casos de uso puros, independientes de Android, verificables con Turbine.
-  **~70 tests** entre `commonTest` (dominio + data) y los tests JVM de la app (ViewModel + DI).
+  **~180 tests** entre `commonTest` (dominio + data) y los tests JVM de la app (ViewModel + DI).
 - **Accesibilidad de verdad:** anuncios de errores/resultado (`liveRegion`), descripciones de contenido
   y navegación por headings.
 - **UI compartida (Compose Multiplatform):** una sola UI Compose (`commonMain/ui`) para Android e iOS;
@@ -202,8 +211,9 @@ con la **misma** `IdempotencyKey`.
   icono se lean como un solo producto — más un **set de iconos vectoriales propio** (`CheckoutIcons`,
   `ImageVector` en `commonMain`) que se renderiza idéntico en Android/iOS sin la dependencia
   `material-icons-extended` (deprecada en Compose MP).
-- **Internacionalización:** UI localizada **EN/ES** vía `tr(en, es)` en Kotlin (los Compose resources no
-  los empaqueta el plugin KMP-library de AGP 9); los mensajes de error nunca filtran códigos técnicos.
+- **Internacionalización:** UI localizada **EN/ES** con un catálogo type-safe `Strings` en Kotlin
+  (`LocalStrings.current`; los Compose resources no los empaqueta el plugin KMP-library de AGP 9); los
+  mensajes de error nunca filtran códigos técnicos.
 - **Higiene de código:** sin números mágicos (reglas de tarjeta en `CardRules`, dimensiones/tokens de
   UI en `Dimens`, credenciales de demo en `DemoDefaults`), sin duplicación hardcodeada, **sin APIs
   deprecadas** (fechas migradas a `kotlin.time` con kotlinx-datetime 0.7.1) y con la regla de
