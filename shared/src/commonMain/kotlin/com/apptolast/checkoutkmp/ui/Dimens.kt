@@ -52,4 +52,19 @@ object Dimens {
 
     /** Faint card motif watermarked into the branded header. */
     val watermarkIconSize = 72.dp
+
+    /** Width of one segmented OTP cell (six cells plus gaps fit well inside [contentMaxWidth]). */
+    val otpCellWidth = 44.dp
+
+    /** Height of one segmented OTP cell. */
+    val otpCellHeight = 52.dp
+
+    /** Corner radius of a segmented OTP cell. */
+    val otpCellCorner = 8.dp
+
+    /** Outline of an idle OTP cell. */
+    val otpCellStroke = 1.dp
+
+    /** Outline of the highlighted OTP cell (the one the next digit lands in). */
+    val otpCellStrokeActive = 2.dp
 }

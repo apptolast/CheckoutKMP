@@ -217,7 +217,10 @@ private fun StatusContent(
             challenge = status.challenge,
             otpError = status.otpError,
             isVerifying = status.isVerifying,
+            resendSecondsLeft = status.resendSecondsLeft,
+            otpResent = status.otpResent,
             onVerify = { onIntent(CheckoutIntent.SubmitOtp(it)) },
+            onResend = { onIntent(CheckoutIntent.ResendOtp) },
             onCancel = { onIntent(CheckoutIntent.CancelSca) },
             modifier = Modifier.fillMaxWidth(),
         )

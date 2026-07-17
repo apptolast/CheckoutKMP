@@ -137,7 +137,15 @@ interface Strings {
     fun enterCodeSentTo(otpLength: Int, target: String): String
     val demoCode: String
     val verificationCode: String
+
+    /** Spoken description of the one-field OTP entry: "Verification code, 3 of 6 digits entered". */
+    fun verificationCodeProgress(entered: Int, total: Int): String
     val incorrectCode: String
+    val resendCode: String
+
+    /** Resend label while the cooldown ticks, e.g. "Resend code (12s)". */
+    fun resendCodeIn(seconds: Int): String
+    val codeSentAgain: String
     val verify: String
     val cancel: String
 }
@@ -254,7 +262,12 @@ object EnStrings : Strings {
         "Enter the $otpLength-digit code sent to $target."
     override val demoCode = "Demo code"
     override val verificationCode = "Verification code"
+    override fun verificationCodeProgress(entered: Int, total: Int) =
+        "Verification code, $entered of $total digits entered"
     override val incorrectCode = "Incorrect code, try again."
+    override val resendCode = "Resend code"
+    override fun resendCodeIn(seconds: Int) = "Resend code (${seconds}s)"
+    override val codeSentAgain = "Code sent again"
     override val verify = "Verify"
     override val cancel = "Cancel"
 }
@@ -371,7 +384,12 @@ object EsStrings : Strings {
         "Introduce el código de $otpLength dígitos enviado a $target."
     override val demoCode = "Código demo"
     override val verificationCode = "Código de verificación"
+    override fun verificationCodeProgress(entered: Int, total: Int) =
+        "Código de verificación, $entered de $total dígitos introducidos"
     override val incorrectCode = "Código incorrecto, inténtalo de nuevo."
+    override val resendCode = "Reenviar código"
+    override fun resendCodeIn(seconds: Int) = "Reenviar código (${seconds}s)"
+    override val codeSentAgain = "Código enviado de nuevo"
     override val verify = "Verificar"
     override val cancel = "Cancelar"
 }
