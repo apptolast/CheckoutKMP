@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -99,9 +101,13 @@ fun CheckoutScreen(
         },
     ) { padding ->
         Column(
+            // imePadding before verticalScroll so the scroll viewport shrinks above the keyboard,
+            // keeping the Pay button and status line reachable while typing.
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.spacingXLarge, vertical = Dimens.spacingLarge),
             verticalArrangement = Arrangement.spacedBy(Dimens.spacingXLarge),
         ) {
@@ -421,7 +427,8 @@ private fun FailureView(
 private fun ReceiptView(receipt: Receipt, onDone: () -> Unit) {
     val strings = LocalStrings.current
     Column(
-        modifier = Modifier.fillMaxSize(),
+        // fillMaxWidth, not fillMaxSize: the parent column is scrollable, so height is unbounded.
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium),
     ) {
