@@ -30,4 +30,10 @@ sealed interface PaymentMethod {
             BIZUM("Bizum"),
         }
     }
+
+    /** A prepaid gift card: the balance is consumed at redemption, so it charges in one step. */
+    data class GiftCard(val code: String) : PaymentMethod {
+        override val label: String get() = code
+        override val capturesImmediately: Boolean get() = true
+    }
 }

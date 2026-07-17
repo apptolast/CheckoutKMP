@@ -29,13 +29,18 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +55,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.apptolast.checkoutkmp.domain.simulation.DemoDefaults
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.PaymentMethod
@@ -139,17 +145,30 @@ fun CheckoutScreen(
                         enabled = !state.isProcessing,
                         onSelect = { onIntent(CheckoutIntent.SelectScenario(it)) },
                     )
-                    MethodSelector(
-                        selected = state.method,
+                    GiftCardSection(
+                        state = state,
                         enabled = !state.isProcessing,
-                        onSelect = { onIntent(CheckoutIntent.SelectMethod(it)) },
+                        onIntent = onIntent,
                     )
-                    CardForm(
-                        enabled = !state.isProcessing,
-                        payAmount = state.amount.formatWithCurrency(),
-                        onSubmit = { onIntent(CheckoutIntent.Submit(it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    if (state.plan.coversTotal) {
+                        GiftCardOnlyPay(
+                            enabled = !state.isProcessing,
+                            onPay = { onIntent(CheckoutIntent.SubmitGiftCardOnly) },
+                        )
+                    } else {
+                        MethodSelector(
+                            selected = state.method,
+                            enabled = !state.isProcessing,
+                            onSelect = { onIntent(CheckoutIntent.SelectMethod(it)) },
+                        )
+                        CardForm(
+                            enabled = !state.isProcessing,
+                            // With a gift card applied, the card only pays the remainder.
+                            payAmount = state.plan.remainder.formatWithCurrency(),
+                            onSubmit = { onIntent(CheckoutIntent.Submit(it)) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     StatusLine(status)
                 }
             }
@@ -283,6 +302,105 @@ private fun MethodSelector(
             }
         }
         HorizontalDivider(modifier = Modifier.padding(top = Dimens.spacingSmall))
+    }
+}
+
+/**
+ * Split-payment section: apply a gift card by code, or show the applied balance, the remaining
+ * amount and a "remove" action. The code itself is not PCI data, so it can live in state; the
+ * balance is only consumed when the order is actually paid.
+ */
+@Composable
+private fun GiftCardSection(
+    state: CheckoutState,
+    enabled: Boolean,
+    onIntent: (CheckoutIntent) -> Unit,
+) {
+    val strings = LocalStrings.current
+    Column {
+        SectionHeading(CheckoutIcons.Receipt, strings.giftCard)
+        Spacer(Modifier.height(Dimens.spacingSmall))
+
+        val giftCard = state.giftCard
+        if (giftCard == null) {
+            var code by remember { mutableStateOf("") }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it },
+                    label = { Text(strings.giftCardCode) },
+                    singleLine = true,
+                    enabled = enabled,
+                    isError = state.giftCardNotFound,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = { onIntent(CheckoutIntent.ApplyGiftCard(code)) },
+                    enabled = enabled && code.isNotBlank(),
+                ) {
+                    Text(strings.apply)
+                }
+            }
+            val supportingText = if (state.giftCardNotFound) {
+                strings.giftCardNotFound
+            } else {
+                strings.demoGiftCards("${DemoDefaults.GIFT_CARD_PARTIAL}, ${DemoDefaults.GIFT_CARD_FULL}")
+            }
+            Text(
+                supportingText,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (state.giftCardNotFound) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                // Announce "not found" when it appears without stealing focus.
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(giftCard.code, style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        strings.giftCardApplied(state.plan.giftCardPortion.formatWithCurrency()),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = extraColors.success,
+                    )
+                    Text(
+                        if (state.plan.coversTotal) {
+                            strings.giftCardCoversTotal
+                        } else {
+                            strings.remainingToPay(state.plan.remainder.formatWithCurrency())
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                TextButton(onClick = { onIntent(CheckoutIntent.RemoveGiftCard) }, enabled = enabled) {
+                    Text(strings.remove)
+                }
+            }
+        }
+        HorizontalDivider(modifier = Modifier.padding(top = Dimens.spacingSmall))
+    }
+}
+
+/** Pay button for the gift-card-covers-everything path: no card form, no 3D Secure. */
+@Composable
+private fun GiftCardOnlyPay(enabled: Boolean, onPay: () -> Unit) {
+    val strings = LocalStrings.current
+    Button(onClick = onPay, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+        Icon(CheckoutIcons.Lock, contentDescription = null, modifier = Modifier.size(Dimens.iconSmall))
+        Spacer(Modifier.width(Dimens.spacingSmall))
+        Text(strings.payWithGiftCard)
     }
 }
 
@@ -587,7 +705,7 @@ private fun SettlementAction(
     }
 }
 
-/** The itemised receipt card: payment method, auth code and payment id. */
+/** The itemised receipt card: tenders (method + gift card), auth code and payment id. */
 @Composable
 private fun ReceiptDetails(receipt: Receipt) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -613,12 +731,28 @@ private fun ReceiptDetails(receipt: Receipt) {
                     label = strings.paymentMethod,
                     value = method.label,
                 )
+
+                is PaymentMethod.GiftCard -> ReceiptRow(
+                    icon = CheckoutIcons.Receipt,
+                    label = strings.giftCard,
+                    value = method.code,
+                )
             }
-            ReceiptRow(
-                icon = CheckoutIcons.CheckCircle,
-                label = strings.authCode,
-                value = receipt.authCode,
-            )
+            // The gift-card tender of a split payment (skipped when it IS the method, shown above).
+            if (receipt.giftCard != null && receipt.method !is PaymentMethod.GiftCard) {
+                ReceiptRow(
+                    icon = CheckoutIcons.Receipt,
+                    label = strings.giftCard,
+                    value = "−${receipt.giftCard.amount.formatWithCurrency()}",
+                )
+            }
+            if (receipt.authCode != null) {
+                ReceiptRow(
+                    icon = CheckoutIcons.CheckCircle,
+                    label = strings.authCode,
+                    value = receipt.authCode,
+                )
+            }
             ReceiptRow(
                 icon = CheckoutIcons.Receipt,
                 label = strings.paymentId,

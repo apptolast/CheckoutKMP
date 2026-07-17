@@ -11,6 +11,7 @@ import com.apptolast.checkoutkmp.support.FixedClock
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -30,7 +31,7 @@ class PaymentRepositoryImplTest {
         val card = assertIs<PaymentMethod.Card>(receipt.method)
         assertEquals("•••• 4242", card.token.masked) // no PAN, only last4
         assertTrue(receipt.paymentId.startsWith("pay_"))
-        assertTrue(receipt.authCode.isNotBlank())
+        assertFalse(receipt.authCode.isNullOrBlank()) // card tenders always carry an auth code
         assertEquals(null, receipt.capturedAt) // a card authorization holds funds, it does not charge
     }
 

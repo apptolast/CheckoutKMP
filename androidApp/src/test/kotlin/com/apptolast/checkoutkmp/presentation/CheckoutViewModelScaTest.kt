@@ -9,10 +9,6 @@ import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.CardExpiry
 import com.apptolast.checkoutkmp.domain.model.Currency
 import com.apptolast.checkoutkmp.domain.model.PaymentError
-import com.apptolast.checkoutkmp.domain.usecase.CapturePaymentUseCase
-import com.apptolast.checkoutkmp.domain.usecase.CompleteScaUseCase
-import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
-import com.apptolast.checkoutkmp.domain.usecase.RefundPaymentUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -37,10 +33,7 @@ class CheckoutViewModelScaTest {
         val psp = FakePsp()
         val repo = PaymentRepositoryImpl(psp = psp)
         val vm = CheckoutViewModel(
-            processPayment = ProcessPaymentUseCase(repo),
-            completeSca = CompleteScaUseCase(repo),
-            capturePayment = CapturePaymentUseCase(repo),
-            refundPayment = RefundPaymentUseCase(repo),
+            useCases = checkoutUseCases(repo),
             tokenizer = FakeCardTokenizer(),
             scenarioController = psp,
             // State is the source of truth; init syncs this onto the PSP.

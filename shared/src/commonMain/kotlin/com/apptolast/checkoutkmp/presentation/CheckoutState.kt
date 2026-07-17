@@ -2,9 +2,12 @@ package com.apptolast.checkoutkmp.presentation
 
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.model.Amount
+import com.apptolast.checkoutkmp.domain.model.GiftCard
 import com.apptolast.checkoutkmp.domain.model.PaymentError
 import com.apptolast.checkoutkmp.domain.model.Receipt
 import com.apptolast.checkoutkmp.domain.model.ScaChallenge
+import com.apptolast.checkoutkmp.domain.model.SplitPlan
+import com.apptolast.checkoutkmp.domain.model.planSplit
 
 /** The payment methods the user can pick in the demo. The UI resolves the localized label. */
 enum class MethodOption {
@@ -16,14 +19,20 @@ enum class MethodOption {
  *
  * **Golden rule:** this exposed state never contains the PAN or CVV. Sensitive card input lives only
  * in the composable's local field state and is passed transiently through [CheckoutIntent.Submit].
+ * (A gift-card code is not card data in the PCI sense, so [giftCard] may live here.)
  */
 data class CheckoutState(
     val amount: Amount,
     val method: MethodOption = MethodOption.CARD,
     val scenario: PaymentScenario = PaymentScenario.APPROVED,
+    val giftCard: GiftCard? = null,
+    val giftCardNotFound: Boolean = false,
     val status: CheckoutStatus = CheckoutStatus.Editing,
 ) {
     val isProcessing: Boolean get() = status is CheckoutStatus.Processing
+
+    /** Tender split for the current total: gift card first, the card pays [SplitPlan.remainder]. */
+    val plan: SplitPlan get() = planSplit(amount, giftCard)
 }
 
 /** Where the checkout is in its lifecycle. Mirrors the domain [com.apptolast.checkoutkmp.domain.model.PaymentState]. */

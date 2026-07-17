@@ -12,6 +12,15 @@ sealed interface CheckoutIntent {
     /** Pick which behaviour the fake PSP should simulate on the next payment (demo control). */
     data class SelectScenario(val scenario: PaymentScenario) : CheckoutIntent
 
+    /** Look up and apply a gift card [code]; the balance is only consumed when the order is paid. */
+    data class ApplyGiftCard(val code: String) : CheckoutIntent
+
+    /** Remove the applied gift card (nothing was consumed yet). */
+    data object RemoveGiftCard : CheckoutIntent
+
+    /** Pay entirely with the applied gift card — only offered when its balance covers the total. */
+    data object SubmitGiftCardOnly : CheckoutIntent
+
     /**
      * Submit the card for payment. [card] carries the raw PAN/CVV **transiently** — the ViewModel
      * tokenizes it and discards it immediately; it never enters [CheckoutState] or any log.

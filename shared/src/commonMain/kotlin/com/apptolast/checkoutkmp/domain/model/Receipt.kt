@@ -9,13 +9,18 @@ import kotlin.time.Instant
  * [capturedAt]/[refundedAt] record when each settlement step happened: both `null` means the funds
  * are only authorized (held), [capturedAt] set means the customer was actually charged, and
  * [refundedAt] set means the charge was returned.
+ *
+ * [giftCard] records the gift-card tender of a split payment (or the whole payment when [method]
+ * is [PaymentMethod.GiftCard]); its redemption id is the handle used to return that balance.
+ * [authCode] is `null` for tenders that have no issuer authorization code (gift cards).
  */
 data class Receipt(
     val paymentId: String,
     val amount: Amount,
     val method: PaymentMethod,
     val authorizedAt: Instant,
-    val authCode: String,
+    val authCode: String?,
     val capturedAt: Instant? = null,
     val refundedAt: Instant? = null,
+    val giftCard: GiftCardTender? = null,
 )

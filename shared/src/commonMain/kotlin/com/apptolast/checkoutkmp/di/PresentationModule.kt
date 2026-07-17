@@ -3,6 +3,7 @@ package com.apptolast.checkoutkmp.di
 import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.Currency
 import com.apptolast.checkoutkmp.presentation.CheckoutState
+import com.apptolast.checkoutkmp.presentation.CheckoutUseCases
 import com.apptolast.checkoutkmp.presentation.CheckoutViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -12,12 +13,20 @@ private val demoAmount = Amount.of(major = 49, minor = 99, currency = Currency.E
 
 /** Koin bindings for the Android presentation layer. */
 val presentationModule = module {
-    viewModel {
-        CheckoutViewModel(
+    factory {
+        CheckoutUseCases(
             processPayment = get(),
             completeSca = get(),
             capturePayment = get(),
             refundPayment = get(),
+            processSplitPayment = get(),
+            applyGiftCard = get(),
+            reverseGiftCard = get(),
+        )
+    }
+    viewModel {
+        CheckoutViewModel(
+            useCases = get(),
             tokenizer = get(),
             scenarioController = get(),
             initialState = CheckoutState(amount = demoAmount),

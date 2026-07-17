@@ -35,6 +35,29 @@ data class Amount(
     /** Value plus currency code, e.g. `10.50 EUR`. */
     fun formatWithCurrency(): String = "${format()} ${currency.code}"
 
+    /** Same-currency addition. */
+    operator fun plus(other: Amount): Amount {
+        requireSameCurrency(other)
+        return Amount(minorUnits + other.minorUnits, currency)
+    }
+
+    /** Same-currency subtraction; the result must stay non-negative (amounts cannot go below zero). */
+    operator fun minus(other: Amount): Amount {
+        requireSameCurrency(other)
+        return Amount(minorUnits - other.minorUnits, currency)
+    }
+
+    /** The smaller of two same-currency amounts. */
+    fun coerceAtMost(other: Amount): Amount {
+        requireSameCurrency(other)
+        return if (minorUnits <= other.minorUnits) this else other
+    }
+
+    val isZero: Boolean get() = minorUnits == 0L
+
+    private fun requireSameCurrency(other: Amount) =
+        require(currency == other.currency) { "Currency mismatch: $currency vs ${other.currency}" }
+
     companion object {
         /** Build from major + minor units, e.g. `Amount.of(10, 50, EUR)` == 1050 minor units. */
         fun of(major: Long, minor: Long = 0, currency: Currency): Amount {

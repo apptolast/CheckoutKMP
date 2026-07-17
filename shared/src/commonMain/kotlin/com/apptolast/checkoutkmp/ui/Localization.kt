@@ -44,6 +44,18 @@ interface Strings {
     fun cardEndingIn(brand: String, last4: String): String
     fun brandCard(brand: String): String
 
+    // Gift card (split payment)
+    val giftCard: String
+    val giftCardCode: String
+    val apply: String
+    val remove: String
+    val giftCardNotFound: String
+    fun giftCardApplied(amount: String): String
+    fun remainingToPay(amount: String): String
+    val giftCardCoversTotal: String
+    val payWithGiftCard: String
+    fun demoGiftCards(codes: String): String
+
     // Receipt (authorization vs capture lifecycle)
     val paymentAuthorized: String
     val authorizedChargeNote: String
@@ -111,6 +123,17 @@ object EnStrings : Strings {
     override fun cardEndingIn(brand: String, last4: String) = "$brand, card ending in $last4"
     override fun brandCard(brand: String) = "$brand card"
 
+    override val giftCard = "Gift card"
+    override val giftCardCode = "Gift card code"
+    override val apply = "Apply"
+    override val remove = "Remove"
+    override val giftCardNotFound = "Gift card not found. Check the code and try again."
+    override fun giftCardApplied(amount: String) = "Applied: −$amount"
+    override fun remainingToPay(amount: String) = "Remaining to pay: $amount"
+    override val giftCardCoversTotal = "The gift card covers the total — no card or 3D Secure needed."
+    override val payWithGiftCard = "Pay with gift card"
+    override fun demoGiftCards(codes: String) = "Demo codes: $codes"
+
     override val paymentAuthorized = "Payment authorized"
     override val authorizedChargeNote = "You'll be charged when the order is dispatched."
     override val paymentCaptured = "Payment charged"
@@ -175,6 +198,17 @@ object EsStrings : Strings {
     override val card = "Tarjeta"
     override fun cardEndingIn(brand: String, last4: String) = "$brand, tarjeta terminada en $last4"
     override fun brandCard(brand: String) = "Tarjeta $brand"
+
+    override val giftCard = "Tarjeta regalo"
+    override val giftCardCode = "Código de la tarjeta regalo"
+    override val apply = "Aplicar"
+    override val remove = "Quitar"
+    override val giftCardNotFound = "Tarjeta regalo no encontrada. Revisa el código e inténtalo de nuevo."
+    override fun giftCardApplied(amount: String) = "Aplicado: −$amount"
+    override fun remainingToPay(amount: String) = "Restante a pagar: $amount"
+    override val giftCardCoversTotal = "La tarjeta regalo cubre el total: no hace falta tarjeta ni 3D Secure."
+    override val payWithGiftCard = "Pagar con tarjeta regalo"
+    override fun demoGiftCards(codes: String) = "Códigos demo: $codes"
 
     override val paymentAuthorized = "Pago autorizado"
     override val authorizedChargeNote = "Se cobrará al enviar el pedido."

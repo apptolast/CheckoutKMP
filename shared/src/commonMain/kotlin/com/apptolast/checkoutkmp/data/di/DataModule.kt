@@ -1,10 +1,12 @@
 package com.apptolast.checkoutkmp.data.di
 
+import com.apptolast.checkoutkmp.data.giftcard.FakeGiftCardStore
 import com.apptolast.checkoutkmp.data.psp.FakePsp
 import com.apptolast.checkoutkmp.data.psp.Psp
 import com.apptolast.checkoutkmp.data.repository.PaymentRepositoryImpl
 import com.apptolast.checkoutkmp.data.repository.RetryingPaymentRepository
 import com.apptolast.checkoutkmp.data.tokenizer.FakeCardTokenizer
+import com.apptolast.checkoutkmp.domain.giftcard.GiftCardService
 import com.apptolast.checkoutkmp.domain.repository.PaymentRepository
 import com.apptolast.checkoutkmp.domain.simulation.PaymentScenario
 import com.apptolast.checkoutkmp.domain.simulation.PaymentSimulator
@@ -22,6 +24,8 @@ val dataModule = module {
     single { FakePsp(scenario = PaymentScenario.APPROVED, latency = 800.milliseconds) } binds
         arrayOf(Psp::class, PaymentSimulator::class)
     single<CardTokenizer> { FakeCardTokenizer() }
+    // The gift-card backend: one instance so balances persist across the demo session.
+    single<GiftCardService> { FakeGiftCardStore() }
     // Transient failures are retried transparently (same IdempotencyKey) by the decorator.
     single<PaymentRepository> {
         RetryingPaymentRepository(delegate = PaymentRepositoryImpl(psp = get()))
