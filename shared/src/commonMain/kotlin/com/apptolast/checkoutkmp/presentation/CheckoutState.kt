@@ -59,11 +59,17 @@ sealed interface CheckoutStatus {
      * 3D Secure required. [isVerifying] is true while an OTP is being checked; [otpError] is true
      * after a wrong code so the UI can show a localized message and let the user retry without
      * losing the challenge. The message text itself lives in the UI layer, not in this state.
+     *
+     * [resendSecondsLeft] is the ViewModel-driven resend cooldown (the "Resend code (Ns)" label);
+     * the resend action is available only at zero. [otpResent] is true after a successful reissue
+     * so the UI can confirm ("Code sent again") politely; it clears on the next verify attempt.
      */
     data class RequiresSca(
         val challenge: ScaChallenge,
         val otpError: Boolean = false,
         val isVerifying: Boolean = false,
+        val resendSecondsLeft: Int = 0,
+        val otpResent: Boolean = false,
     ) : CheckoutStatus
 
     /**

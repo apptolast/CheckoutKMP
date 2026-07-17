@@ -13,6 +13,7 @@ import com.apptolast.checkoutkmp.domain.usecase.ProcessPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ProcessSplitPaymentUseCase
 import com.apptolast.checkoutkmp.domain.usecase.RecordOrderUseCase
 import com.apptolast.checkoutkmp.domain.usecase.RefundPaymentUseCase
+import com.apptolast.checkoutkmp.domain.usecase.ResendScaUseCase
 import com.apptolast.checkoutkmp.domain.usecase.ReverseGiftCardRedemptionUseCase
 import com.apptolast.checkoutkmp.domain.usecase.VoidAuthorizationUseCase
 
@@ -24,6 +25,7 @@ fun checkoutUseCases(
 ): CheckoutUseCases = CheckoutUseCases(
     processPayment = ProcessPaymentUseCase(repo),
     completeSca = CompleteScaUseCase(repo),
+    resendSca = ResendScaUseCase(repo),
     completeRedirect = CompleteRedirectUseCase(repo),
     capturePayment = CapturePaymentUseCase(repo),
     voidAuthorization = VoidAuthorizationUseCase(repo),

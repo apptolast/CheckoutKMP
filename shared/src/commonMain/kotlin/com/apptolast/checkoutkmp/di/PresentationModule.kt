@@ -18,6 +18,7 @@ val presentationModule = module {
         CheckoutUseCases(
             processPayment = get(),
             completeSca = get(),
+            resendSca = get(),
             completeRedirect = get(),
             capturePayment = get(),
             voidAuthorization = get(),

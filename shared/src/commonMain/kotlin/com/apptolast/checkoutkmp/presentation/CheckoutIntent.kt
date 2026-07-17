@@ -34,6 +34,9 @@ sealed interface CheckoutIntent {
     /** Submit the 3D Secure OTP for the pending challenge. */
     data class SubmitOtp(val otp: String) : CheckoutIntent
 
+    /** Ask for the 3D Secure code to be sent again (available once the resend cooldown hits 0). */
+    data object ResendOtp : CheckoutIntent
+
     /** Pay with the selected redirect method (PayPal/Bizum): creates the provider order. */
     data object SubmitWallet : CheckoutIntent
 

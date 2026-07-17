@@ -17,12 +17,16 @@ import com.apptolast.checkoutkmp.domain.model.PaymentMethod
 import com.apptolast.checkoutkmp.domain.model.PaymentRequest
 import com.apptolast.checkoutkmp.domain.model.PaymentState
 import com.apptolast.checkoutkmp.domain.model.RedirectReturn
+import com.apptolast.checkoutkmp.domain.simulation.DemoDefaults
 import com.apptolast.checkoutkmp.domain.usecase.SplitPaymentEvent
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * MVI ViewModel for the checkout screen. Reduces [CheckoutIntent] + current state into a new
@@ -57,7 +61,14 @@ class CheckoutViewModel(
      */
     private fun applyStatus(newStatus: CheckoutStatus) {
         newStatus.receiptOrNull()?.let { useCases.recordOrder(it) }
+        val wasSca = _state.value.status is CheckoutStatus.RequiresSca
         _state.update { it.copy(status = newStatus) }
+        // The resend cooldown lives exactly as long as a challenge is on screen: it starts when a
+        // challenge arrives and stops the moment the checkout moves anywhere else.
+        when {
+            newStatus is CheckoutStatus.RequiresSca && !wasSca -> restartResendCountdown()
+            newStatus !is CheckoutStatus.RequiresSca && wasSca -> stopResendCountdown()
+        }
     }
 
     private fun CheckoutStatus.receiptOrNull() = when (this) {
@@ -91,6 +102,9 @@ class CheckoutViewModel(
     private var refundKey: IdempotencyKey? = null
     private var refundReversalKey: IdempotencyKey? = null
 
+    /** Ticks [CheckoutStatus.RequiresSca.resendSecondsLeft] down while a challenge is on screen. */
+    private var resendCountdownJob: Job? = null
+
     init {
         scenarioController.scenario = initialState.scenario
     }
@@ -116,11 +130,13 @@ class CheckoutViewModel(
             CheckoutIntent.SubmitGiftCardOnly -> submitGiftCardOnly()
             CheckoutIntent.SubmitWallet -> submitWallet()
             is CheckoutIntent.SubmitOtp -> verifyOtp(intent.otp)
+            CheckoutIntent.ResendOtp -> resendOtp()
             is CheckoutIntent.CompleteRedirect -> completeRedirect(intent.returned)
 
             CheckoutIntent.CancelSca -> {
                 compensateAbandonedRedemption()
                 pendingRequest = null
+                stopResendCountdown()
                 _state.update { it.copy(status = CheckoutStatus.Failed(PaymentError.Cancelled)) }
             }
 
@@ -133,6 +149,7 @@ class CheckoutViewModel(
             CheckoutIntent.Reset -> {
                 compensateAbandonedRedemption()
                 clearPendingWork()
+                stopResendCountdown()
                 _state.update { it.copy(status = CheckoutStatus.Editing) }
             }
         }
@@ -452,43 +469,95 @@ class CheckoutViewModel(
 
     private fun verifyOtp(otp: String) {
         val request = pendingRequest ?: return
-        val challenge = (_state.value.status as? CheckoutStatus.RequiresSca)?.challenge ?: return
+        if (_state.value.status !is CheckoutStatus.RequiresSca) return
 
         viewModelScope.launch {
             useCases.completeSca(request, otp).collect { paymentState ->
-                val newStatus = when (paymentState) {
+                // While the outcome keeps us on the challenge, rewrite the current RequiresSca in
+                // place (via updateScaStatus) so the ticking resend cooldown is never reset.
+                when (paymentState) {
                     PaymentState.Idle,
                     PaymentState.Processing ->
-                        CheckoutStatus.RequiresSca(challenge, isVerifying = true)
+                        updateScaStatus { it.copy(isVerifying = true, otpResent = false) }
 
                     is PaymentState.Authorized,
                     is PaymentState.Captured,
                     is PaymentState.Refunded,
                     is PaymentState.Voided -> {
                         pendingRequest = null
-                        paymentState.withPendingGiftCardTender().toCheckoutStatus()
+                        applyStatus(paymentState.withPendingGiftCardTender().toCheckoutStatus())
                     }
 
                     is PaymentState.RequiresSca ->
-                        CheckoutStatus.RequiresSca(paymentState.challenge)
+                        updateScaStatus { it.copy(challenge = paymentState.challenge, isVerifying = false) }
 
                     is PaymentState.RequiresRedirect ->
-                        CheckoutStatus.RequiresRedirect(paymentState.redirect)
+                        applyStatus(CheckoutStatus.RequiresRedirect(paymentState.redirect))
 
                     is PaymentState.Failed ->
                         if (paymentState.error is PaymentError.ScaFailed) {
                             // Keep the challenge so the user can re-enter the code.
-                            CheckoutStatus.RequiresSca(challenge, otpError = true)
+                            updateScaStatus { it.copy(isVerifying = false, otpError = true) }
                         } else {
                             // The card leg failed for good after the balance was consumed: compensate.
                             compensateAbandonedRedemption()
                             pendingRequest = null
-                            CheckoutStatus.Failed(paymentState.error)
+                            applyStatus(CheckoutStatus.Failed(paymentState.error))
                         }
                 }
-                applyStatus(newStatus)
             }
         }
+    }
+
+    /** Re-issues the pending challenge (same key, same challenge) and restarts the cooldown. */
+    private fun resendOtp() {
+        val request = pendingRequest ?: return
+        val sca = _state.value.status as? CheckoutStatus.RequiresSca ?: return
+        if (sca.isVerifying || sca.resendSecondsLeft > 0) return
+
+        viewModelScope.launch {
+            when (val result = useCases.resendSca(request)) {
+                is PaymentState.RequiresSca -> {
+                    // A fresh delivery voids the previous wrong-code verdict; announce politely.
+                    updateScaStatus { it.copy(challenge = result.challenge, otpError = false, otpResent = true) }
+                    restartResendCountdown()
+                }
+
+                // A failed reissue leaves the pending challenge untouched; the user can try again.
+                else -> Unit
+            }
+        }
+    }
+
+    /** Rewrites the current [CheckoutStatus.RequiresSca] — a no-op if the challenge already left. */
+    private fun updateScaStatus(transform: (CheckoutStatus.RequiresSca) -> CheckoutStatus.RequiresSca) {
+        _state.update { current ->
+            val sca = current.status as? CheckoutStatus.RequiresSca ?: return@update current
+            current.copy(status = transform(sca))
+        }
+    }
+
+    /**
+     * Runs the resend cooldown on [viewModelScope], one state tick per second. Driving it from the
+     * ViewModel (not a UI-side clock) keeps it on the injected main dispatcher, so tests advance it
+     * with virtual time.
+     */
+    private fun restartResendCountdown() {
+        resendCountdownJob?.cancel()
+        resendCountdownJob = viewModelScope.launch {
+            var remaining = DemoDefaults.OTP_RESEND_COOLDOWN.inWholeSeconds.toInt()
+            updateScaStatus { it.copy(resendSecondsLeft = remaining) }
+            while (remaining > 0) {
+                delay(1.seconds)
+                remaining--
+                updateScaStatus { it.copy(resendSecondsLeft = remaining) }
+            }
+        }
+    }
+
+    private fun stopResendCountdown() {
+        resendCountdownJob?.cancel()
+        resendCountdownJob = null
     }
 
     /** After SCA settles a split payment, stamp the gift-card tender onto the receipt. */

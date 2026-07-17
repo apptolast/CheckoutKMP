@@ -9,19 +9,24 @@ import com.apptolast.checkoutkmp.domain.model.Amount
 import com.apptolast.checkoutkmp.domain.model.CardExpiry
 import com.apptolast.checkoutkmp.domain.model.Currency
 import com.apptolast.checkoutkmp.domain.model.PaymentError
+import com.apptolast.checkoutkmp.domain.simulation.DemoDefaults
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CheckoutViewModelScaTest {
@@ -104,5 +109,94 @@ class CheckoutViewModelScaTest {
 
         assertEquals(PaymentScenario.DECLINED, psp.scenario)
         assertEquals(PaymentScenario.DECLINED, vm.state.value.scenario)
+    }
+
+    // --- Resend cooldown: virtual time on the injected main dispatcher drives every tick ---
+
+    private val cooldownSeconds = DemoDefaults.OTP_RESEND_COOLDOWN.inWholeSeconds.toInt()
+
+    private fun scaStatus(vm: CheckoutViewModel): CheckoutStatus.RequiresSca =
+        assertIs<CheckoutStatus.RequiresSca>(vm.state.value.status)
+
+    @Test
+    fun resend_countdown_starts_with_the_challenge_and_ticks_down_to_zero() = runTest {
+        val (_, vm) = newViewModel()
+
+        vm.onIntent(CheckoutIntent.Submit(validCard))
+        runCurrent()
+        assertEquals(cooldownSeconds, scaStatus(vm).resendSecondsLeft)
+
+        advanceTimeBy(1.seconds)
+        runCurrent()
+        assertEquals(cooldownSeconds - 1, scaStatus(vm).resendSecondsLeft)
+
+        advanceTimeBy((cooldownSeconds - 1).seconds)
+        runCurrent()
+        assertEquals(0, scaStatus(vm).resendSecondsLeft, "the resend action unlocks at zero")
+    }
+
+    @Test
+    fun resend_is_ignored_while_the_cooldown_is_running() = runTest {
+        val (_, vm) = newViewModel()
+        vm.onIntent(CheckoutIntent.Submit(validCard))
+        runCurrent()
+
+        vm.onIntent(CheckoutIntent.ResendOtp)
+        runCurrent()
+
+        val status = scaStatus(vm)
+        assertFalse(status.otpResent, "no reissue may happen while the cooldown is ticking")
+        assertEquals(cooldownSeconds, status.resendSecondsLeft, "the cooldown must not restart")
+    }
+
+    @Test
+    fun resend_reissues_the_challenge_clears_the_error_and_restarts_the_cooldown() = runTest {
+        val (_, vm) = newViewModel()
+        vm.onIntent(CheckoutIntent.Submit(validCard))
+        advanceUntilIdle() // challenge shown, cooldown fully drained to 0
+        vm.onIntent(CheckoutIntent.SubmitOtp("000000"))
+        advanceUntilIdle()
+        val before = scaStatus(vm)
+        assertTrue(before.otpError)
+        assertEquals(0, before.resendSecondsLeft)
+
+        vm.onIntent(CheckoutIntent.ResendOtp)
+        runCurrent()
+
+        val after = scaStatus(vm)
+        assertTrue(after.otpResent, "a successful reissue announces itself")
+        assertFalse(after.otpError, "a fresh delivery voids the stale wrong-code verdict")
+        assertEquals(before.challenge, after.challenge, "same challenge — only the delivery repeats")
+        assertEquals(cooldownSeconds, after.resendSecondsLeft, "the cooldown restarts in full")
+    }
+
+    @Test
+    fun the_original_otp_still_authorizes_after_a_resend() = runTest {
+        val (psp, vm) = newViewModel()
+        vm.onIntent(CheckoutIntent.Submit(validCard))
+        advanceUntilIdle()
+
+        vm.onIntent(CheckoutIntent.ResendOtp)
+        runCurrent()
+        vm.onIntent(CheckoutIntent.SubmitOtp(DemoDefaults.SCA_OTP))
+        advanceUntilIdle()
+
+        assertIs<CheckoutStatus.Authorized>(vm.state.value.status)
+        assertEquals(1, psp.chargeCount, "reissuing must never create a second charge")
+    }
+
+    @Test
+    fun verifying_a_wrong_otp_does_not_reset_the_ticking_cooldown() = runTest {
+        val (_, vm) = newViewModel()
+        vm.onIntent(CheckoutIntent.Submit(validCard))
+        runCurrent() // cooldown at full value, still ticking
+
+        vm.onIntent(CheckoutIntent.SubmitOtp("000000"))
+        advanceTimeBy(1.seconds)
+        runCurrent()
+
+        val status = scaStatus(vm)
+        assertTrue(status.otpError)
+        assertEquals(cooldownSeconds - 1, status.resendSecondsLeft, "the countdown kept its pace")
     }
 }
