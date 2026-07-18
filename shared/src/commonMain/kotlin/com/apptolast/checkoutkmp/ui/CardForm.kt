@@ -78,6 +78,29 @@ fun CardForm(
         (expiryTouched.touched || expiry.length == CardRules.EXPIRY_TOTAL_DIGITS)
     val cvvError = cvv.isNotEmpty() && !cvvValid && cvvTouched.touched
 
+    // Supporting text is passed only when there is something to show, so an empty slot never pads
+    // the fields apart. The PAN keeps its brand/last4 line once a brand is detected.
+    val panSupport: (@Composable () -> Unit)? =
+        if (panError) {
+            { Text(strings.checkCardNumber) }
+        } else if (brand != CardBrand.UNKNOWN) {
+            { CardBrandSupportingText(brand, pan) }
+        } else {
+            null
+        }
+    val expirySupport: (@Composable () -> Unit)? =
+        if (expiryError) {
+            { Text(if (parsedExpiry != null) strings.cardExpired else strings.checkExpiry) }
+        } else {
+            null
+        }
+    val cvvSupport: (@Composable () -> Unit)? =
+        if (cvvError) {
+            { Text(strings.checkCvv) }
+        } else {
+            null
+        }
+
     Column(modifier = modifier) {
         // A titled section like Payment method / Gift card, so the card block reads as its own group
         // instead of floating below the gift-card divider. Heading -> fields keeps the same 8dp gap
@@ -95,9 +118,7 @@ fun CardForm(
                     // supporting text below, so nothing is double-spoken.
                     Crossfade(targetState = brand) { detected -> FieldIcon(brandIcon(detected)) }
                 },
-                supportingText = {
-                    if (panError) Text(strings.checkCardNumber) else CardBrandSupportingText(brand, pan)
-                },
+                supportingText = panSupport,
                 isError = panError,
                 singleLine = true,
                 enabled = enabled,
@@ -130,16 +151,7 @@ fun CardForm(
                     },
                     label = { Text(strings.expiryMmYy) },
                     leadingIcon = { FieldIcon(CheckoutIcons.CalendarMonth) },
-                    supportingText = {
-                        // Always present so the row's two fields keep the same height and nothing
-                        // jumps when the message appears. Expired cards get their own message.
-                        val message = when {
-                            !expiryError -> ""
-                            parsedExpiry != null -> strings.cardExpired
-                            else -> strings.checkExpiry
-                        }
-                        Text(message)
-                    },
+                    supportingText = expirySupport,
                     isError = expiryError,
                     singleLine = true,
                     enabled = enabled,
@@ -159,7 +171,7 @@ fun CardForm(
                     onValueChange = { cvv = digitsOnly(it, max = CardRules.CVV_LENGTHS.last) },
                     label = { Text(strings.cvv) },
                     leadingIcon = { FieldIcon(CheckoutIcons.Lock) },
-                    supportingText = { Text(if (cvvError) strings.checkCvv else "") },
+                    supportingText = cvvSupport,
                     isError = cvvError,
                     singleLine = true,
                     enabled = enabled,

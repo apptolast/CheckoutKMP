@@ -413,7 +413,7 @@ private fun ScenarioSelector(
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacingXSmall),
         ) {
             PaymentScenario.entries.forEach { scenario ->
                 val isSelected = scenario == selected
@@ -516,62 +516,60 @@ private fun GiftCardSection(
             var code by remember { mutableStateOf("") }
             val fieldEnabled = enabled && !state.isApplyingGiftCard
             val apply = { if (code.isNotBlank()) onIntent(CheckoutIntent.ApplyGiftCard(code)) }
+            // Field full-width on its own line; the hint/error and Apply share the line below. This
+            // sidesteps the field-vs-button baseline mismatch of an inline row (an OutlinedTextField
+            // seats its text a few dp lower than a button of the same height).
+            OutlinedTextField(
+                value = code,
+                onValueChange = { new ->
+                    // A stale "not found" verdict clears as soon as the user edits the code.
+                    if (new != code && state.giftCardNotFound) {
+                        onIntent(CheckoutIntent.ClearGiftCardError)
+                    }
+                    code = new
+                },
+                label = { Text(strings.giftCardCode) },
+                singleLine = true,
+                enabled = fieldEnabled,
+                isError = state.giftCardNotFound,
+                keyboardOptions = KeyboardOptions(
+                    // Codes are uppercase alphanumerics, never words: no autocorrect.
+                    capitalization = KeyboardCapitalization.Characters,
+                    autoCorrectEnabled = false,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(onDone = { apply() }),
+                shape = RoundedCornerShape(Dimens.cornerField),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(Dimens.spacingSmall))
             Row(
-                // Both children are exactly fieldHeight (the field has no inline supporting text
-                // anymore — the hint/error moved to a full-width line below), so they line up cleanly.
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingMedium),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                OutlinedTextField(
-                    value = code,
-                    onValueChange = { new ->
-                        // A stale "not found" verdict clears as soon as the user edits the code.
-                        if (new != code && state.giftCardNotFound) {
-                            onIntent(CheckoutIntent.ClearGiftCardError)
-                        }
-                        code = new
+                Text(
+                    text = if (state.giftCardNotFound) {
+                        strings.giftCardNotFound
+                    } else {
+                        strings.demoGiftCards("${DemoDefaults.GIFT_CARD_PARTIAL}, ${DemoDefaults.GIFT_CARD_FULL}")
                     },
-                    label = { Text(strings.giftCardCode) },
-                    singleLine = true,
-                    enabled = fieldEnabled,
-                    isError = state.giftCardNotFound,
-                    keyboardOptions = KeyboardOptions(
-                        // Codes are uppercase alphanumerics, never words: no autocorrect.
-                        capitalization = KeyboardCapitalization.Characters,
-                        autoCorrectEnabled = false,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(onDone = { apply() }),
-                    shape = RoundedCornerShape(Dimens.cornerField),
-                    modifier = Modifier.weight(1f).height(Dimens.fieldHeight),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (state.giftCardNotFound) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    // Announce "not found" when it appears without stealing focus.
+                    modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
                 )
                 BusyButton(
                     label = strings.apply,
                     isBusy = state.isApplyingGiftCard,
                     enabled = fieldEnabled && code.isNotBlank(),
                     onClick = apply,
-                    modifier = Modifier.height(Dimens.fieldHeight),
                 )
             }
-            // Hint by default, error when the code isn't found — one full-width line under the row so
-            // the field and Apply stay single-height and aligned. isError still reddens the field.
-            Spacer(Modifier.height(Dimens.spacingXSmall))
-            Text(
-                text = if (state.giftCardNotFound) {
-                    strings.giftCardNotFound
-                } else {
-                    strings.demoGiftCards("${DemoDefaults.GIFT_CARD_PARTIAL}, ${DemoDefaults.GIFT_CARD_FULL}")
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = if (state.giftCardNotFound) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                // Announce "not found" when it appears without stealing focus.
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
         } else {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
