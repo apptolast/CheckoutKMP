@@ -31,6 +31,7 @@ interface Strings {
     val scenarioRateLimited: String
 
     // Card form
+    val cardDetails: String
     val cardNumber: String
     val expiryMmYy: String
     val cvv: String
@@ -168,6 +169,7 @@ object EnStrings : Strings {
     override val scenarioTimeout = "Timeout"
     override val scenarioRateLimited = "Rate limited"
 
+    override val cardDetails = "Card details"
     override val cardNumber = "Card number"
     override val expiryMmYy = "MM/YY"
     override val cvv = "CVV"
@@ -290,6 +292,7 @@ object EsStrings : Strings {
     override val scenarioTimeout = "Tiempo agotado"
     override val scenarioRateLimited = "Límite de peticiones"
 
+    override val cardDetails = "Datos de tarjeta"
     override val cardNumber = "Número de tarjeta"
     override val expiryMmYy = "MM/AA"
     override val cvv = "CVV"

@@ -491,7 +491,7 @@ private fun MethodSelector(
                 Text(methodLabel(option), style = MaterialTheme.typography.bodyLarge)
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = Dimens.spacingSmall))
+        HorizontalDivider(modifier = Modifier.padding(top = Dimens.spacingMedium))
     }
 }
 
@@ -517,9 +517,9 @@ private fun GiftCardSection(
             val fieldEnabled = enabled && !state.isApplyingGiftCard
             val apply = { if (code.isNotBlank()) onIntent(CheckoutIntent.ApplyGiftCard(code)) }
             Row(
-                // Top-align so the Apply button lines up with the field's input box, not with the
-                // taller field-plus-supporting-text block.
-                verticalAlignment = Alignment.Top,
+                // Both children are exactly fieldHeight (the field has no inline supporting text
+                // anymore — the hint/error moved to a full-width line below), so they line up cleanly.
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -536,23 +536,6 @@ private fun GiftCardSection(
                     singleLine = true,
                     enabled = fieldEnabled,
                     isError = state.giftCardNotFound,
-                    supportingText = {
-                        // Slot always present (the demo hint by default) so isError associates the
-                        // message with the field semantically and nothing jumps when it appears.
-                        if (state.giftCardNotFound) {
-                            Text(
-                                strings.giftCardNotFound,
-                                // Announce "not found" when it appears without stealing focus.
-                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                            )
-                        } else {
-                            Text(
-                                strings.demoGiftCards(
-                                    "${DemoDefaults.GIFT_CARD_PARTIAL}, ${DemoDefaults.GIFT_CARD_FULL}",
-                                ),
-                            )
-                        }
-                    },
                     keyboardOptions = KeyboardOptions(
                         // Codes are uppercase alphanumerics, never words: no autocorrect.
                         capitalization = KeyboardCapitalization.Characters,
@@ -561,10 +544,8 @@ private fun GiftCardSection(
                     ),
                     keyboardActions = KeyboardActions(onDone = { apply() }),
                     shape = RoundedCornerShape(Dimens.cornerField),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).height(Dimens.fieldHeight),
                 )
-                // Align to the field's input box and give it the same busy-spinner standard as the
-                // other actions. Not full-width: it sits beside the field.
                 BusyButton(
                     label = strings.apply,
                     isBusy = state.isApplyingGiftCard,
@@ -573,6 +554,24 @@ private fun GiftCardSection(
                     modifier = Modifier.height(Dimens.fieldHeight),
                 )
             }
+            // Hint by default, error when the code isn't found — one full-width line under the row so
+            // the field and Apply stay single-height and aligned. isError still reddens the field.
+            Spacer(Modifier.height(Dimens.spacingXSmall))
+            Text(
+                text = if (state.giftCardNotFound) {
+                    strings.giftCardNotFound
+                } else {
+                    strings.demoGiftCards("${DemoDefaults.GIFT_CARD_PARTIAL}, ${DemoDefaults.GIFT_CARD_FULL}")
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (state.giftCardNotFound) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                // Announce "not found" when it appears without stealing focus.
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
         } else {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -614,13 +613,13 @@ private fun GiftCardSection(
                 }
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = Dimens.spacingSmall))
+        HorizontalDivider(modifier = Modifier.padding(top = Dimens.spacingMedium))
     }
 }
 
 /** A titled section heading with a leading brand-tinted icon and an optional [trailing] slot. */
 @Composable
-private fun SectionHeading(
+internal fun SectionHeading(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     text: String,
     trailing: (@Composable () -> Unit)? = null,

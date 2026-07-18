@@ -4,7 +4,9 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -76,108 +78,115 @@ fun CardForm(
         (expiryTouched.touched || expiry.length == CardRules.EXPIRY_TOTAL_DIGITS)
     val cvvError = cvv.isNotEmpty() && !cvvValid && cvvTouched.touched
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
-        OutlinedTextField(
-            value = pan,
-            onValueChange = { pan = digitsOnly(it, max = CardRules.PAN_LENGTHS.last) },
-            label = { Text(strings.cardNumber) },
-            leadingIcon = {
-                // The mark follows the detected brand; Crossfade keeps the swap subtle. It is
-                // purely decorative (contentDescription = null) — the brand is announced by the
-                // supporting text below, so nothing is double-spoken.
-                Crossfade(targetState = brand) { detected -> FieldIcon(brandIcon(detected)) }
-            },
-            supportingText = {
-                if (panError) Text(strings.checkCardNumber) else CardBrandSupportingText(brand, pan)
-            },
-            isError = panError,
-            singleLine = true,
-            enabled = enabled,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next,
-            ),
-            visualTransformation = CardNumberVisualTransformation(),
-            shape = RoundedCornerShape(Dimens.cornerField),
-            modifier = Modifier
-                .fillMaxWidth()
-                .onFocusChanged { panTouched.onFocusChanged(it.isFocused) }
-                // Autofill only: lets the platform offer a saved card. The filled value goes
-                // through onValueChange like typed input, so it is digit-stripped and stays in
-                // this composable's local state — the PAN still never reaches any shared state.
-                .semantics { contentType = ContentType.CreditCardNumber },
-        )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
+    Column(modifier = modifier) {
+        // A titled section like Payment method / Gift card, so the card block reads as its own group
+        // instead of floating below the gift-card divider. Heading -> fields keeps the same 8dp gap
+        // as the other sections; the fields themselves sit 12dp apart in the inner column.
+        SectionHeading(CheckoutIcons.CreditCard, strings.cardDetails)
+        Spacer(Modifier.height(Dimens.spacingSmall))
+        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
             OutlinedTextField(
-                value = expiry,
-                onValueChange = { new ->
-                    val digits = digitsOnly(new, max = CardRules.EXPIRY_TOTAL_DIGITS)
-                    val justCompleted = digits.length == CardRules.EXPIRY_TOTAL_DIGITS &&
-                        expiry.length < CardRules.EXPIRY_TOTAL_DIGITS
-                    expiry = digits
-                    // Hop straight to the CVV once MM/YY is fully typed — expiry has a fixed length,
-                    // so completion is unambiguous (unlike the 12–19 digit PAN).
-                    if (justCompleted) focusManager.moveFocus(FocusDirection.Next)
+                value = pan,
+                onValueChange = { pan = digitsOnly(it, max = CardRules.PAN_LENGTHS.last) },
+                label = { Text(strings.cardNumber) },
+                leadingIcon = {
+                    // The mark follows the detected brand; Crossfade keeps the swap subtle. It is
+                    // purely decorative (contentDescription = null) — the brand is announced by the
+                    // supporting text below, so nothing is double-spoken.
+                    Crossfade(targetState = brand) { detected -> FieldIcon(brandIcon(detected)) }
                 },
-                label = { Text(strings.expiryMmYy) },
-                leadingIcon = { FieldIcon(CheckoutIcons.CalendarMonth) },
                 supportingText = {
-                    // Always present so the row's two fields keep the same height and nothing
-                    // jumps when the message appears. Expired cards get their own message.
-                    val message = when {
-                        !expiryError -> ""
-                        parsedExpiry != null -> strings.cardExpired
-                        else -> strings.checkExpiry
-                    }
-                    Text(message)
+                    if (panError) Text(strings.checkCardNumber) else CardBrandSupportingText(brand, pan)
                 },
-                isError = expiryError,
+                isError = panError,
                 singleLine = true,
                 enabled = enabled,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
                     imeAction = ImeAction.Next,
                 ),
-                visualTransformation = ExpiryVisualTransformation(),
+                visualTransformation = CardNumberVisualTransformation(),
                 shape = RoundedCornerShape(Dimens.cornerField),
                 modifier = Modifier
-                    .weight(1f)
-                    .onFocusChanged { expiryTouched.onFocusChanged(it.isFocused) }
-                    .semantics { contentType = ContentType.CreditCardExpirationDate },
+                    .fillMaxWidth()
+                    .onFocusChanged { panTouched.onFocusChanged(it.isFocused) }
+                    // Autofill only: lets the platform offer a saved card. The filled value goes
+                    // through onValueChange like typed input, so it is digit-stripped and stays in
+                    // this composable's local state — the PAN still never reaches any shared state.
+                    .semantics { contentType = ContentType.CreditCardNumber },
             )
-            OutlinedTextField(
-                value = cvv,
-                onValueChange = { cvv = digitsOnly(it, max = CardRules.CVV_LENGTHS.last) },
-                label = { Text(strings.cvv) },
-                leadingIcon = { FieldIcon(CheckoutIcons.Lock) },
-                supportingText = { Text(if (cvvError) strings.checkCvv else "") },
-                isError = cvvError,
-                singleLine = true,
-                enabled = enabled,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.NumberPassword,
-                    imeAction = ImeAction.Done,
-                ),
-                // Masked on screen like any secret; it never leaves local state except via Submit.
-                visualTransformation = PasswordVisualTransformation(),
-                shape = RoundedCornerShape(Dimens.cornerField),
-                modifier = Modifier
-                    .weight(1f)
-                    .onFocusChanged { cvvTouched.onFocusChanged(it.isFocused) }
-                    .semantics { contentType = ContentType.CreditCardSecurityCode },
+
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spacingMedium)) {
+                OutlinedTextField(
+                    value = expiry,
+                    onValueChange = { new ->
+                        val digits = digitsOnly(new, max = CardRules.EXPIRY_TOTAL_DIGITS)
+                        val justCompleted = digits.length == CardRules.EXPIRY_TOTAL_DIGITS &&
+                            expiry.length < CardRules.EXPIRY_TOTAL_DIGITS
+                        expiry = digits
+                        // Hop straight to the CVV once MM/YY is fully typed — expiry has a fixed
+                        // length, so completion is unambiguous (unlike the 12–19 digit PAN).
+                        if (justCompleted) focusManager.moveFocus(FocusDirection.Next)
+                    },
+                    label = { Text(strings.expiryMmYy) },
+                    leadingIcon = { FieldIcon(CheckoutIcons.CalendarMonth) },
+                    supportingText = {
+                        // Always present so the row's two fields keep the same height and nothing
+                        // jumps when the message appears. Expired cards get their own message.
+                        val message = when {
+                            !expiryError -> ""
+                            parsedExpiry != null -> strings.cardExpired
+                            else -> strings.checkExpiry
+                        }
+                        Text(message)
+                    },
+                    isError = expiryError,
+                    singleLine = true,
+                    enabled = enabled,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next,
+                    ),
+                    visualTransformation = ExpiryVisualTransformation(),
+                    shape = RoundedCornerShape(Dimens.cornerField),
+                    modifier = Modifier
+                        .weight(1f)
+                        .onFocusChanged { expiryTouched.onFocusChanged(it.isFocused) }
+                        .semantics { contentType = ContentType.CreditCardExpirationDate },
+                )
+                OutlinedTextField(
+                    value = cvv,
+                    onValueChange = { cvv = digitsOnly(it, max = CardRules.CVV_LENGTHS.last) },
+                    label = { Text(strings.cvv) },
+                    leadingIcon = { FieldIcon(CheckoutIcons.Lock) },
+                    supportingText = { Text(if (cvvError) strings.checkCvv else "") },
+                    isError = cvvError,
+                    singleLine = true,
+                    enabled = enabled,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.NumberPassword,
+                        imeAction = ImeAction.Done,
+                    ),
+                    // Masked on screen like any secret; it never leaves local state except via Submit.
+                    visualTransformation = PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(Dimens.cornerField),
+                    modifier = Modifier
+                        .weight(1f)
+                        .onFocusChanged { cvvTouched.onFocusChanged(it.isFocused) }
+                        .semantics { contentType = ContentType.CreditCardSecurityCode },
+                )
+            }
+
+            PayCta(
+                label = strings.pay(payAmount),
+                enabled = enabled && formValid,
+                onClick = {
+                    val exp = parsedExpiry ?: return@PayCta
+                    onSubmit(RawCard(pan = pan, expiry = exp, cvv = cvv))
+                },
+                modifier = Modifier.padding(top = Dimens.spacingXSmall),
             )
         }
-
-        PayCta(
-            label = strings.pay(payAmount),
-            enabled = enabled && formValid,
-            onClick = {
-                val exp = parsedExpiry ?: return@PayCta
-                onSubmit(RawCard(pan = pan, expiry = exp, cvv = cvv))
-            },
-            modifier = Modifier.padding(top = Dimens.spacingXSmall),
-        )
     }
 }
 
