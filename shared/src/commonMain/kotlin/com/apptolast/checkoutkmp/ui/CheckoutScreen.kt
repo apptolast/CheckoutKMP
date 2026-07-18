@@ -83,18 +83,12 @@ import com.apptolast.checkoutkmp.presentation.MethodOption
 import com.apptolast.checkoutkmp.presentation.CheckoutViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.Instant
 
 // Alpha applied to white content laid over the brand gradient header.
 private const val ON_GRADIENT_WATERMARK_ALPHA = 0.16f
 private const val ON_GRADIENT_MUTED_ALPHA = 0.85f
-
-// Hours and minutes are always shown with two digits ("09:05", not "9:5").
-private const val TIME_COMPONENT_DIGITS = 2
 
 // Fraction of the content height the entering status screen slides up from.
 private const val ENTER_SLIDE_FRACTION = 8
@@ -1068,7 +1062,7 @@ internal fun ReceiptDetails(receipt: Receipt) {
             ReceiptRow(
                 icon = CheckoutIcons.CalendarMonth,
                 label = strings.date,
-                value = formatReceiptDate(receipt.createdAt, strings),
+                value = formatDateTime(receipt.createdAt, strings),
             )
             HorizontalDivider()
             // After-sales eligibility: the payment method conditions the business, not just the charge.
@@ -1076,18 +1070,6 @@ internal fun ReceiptDetails(receipt: Receipt) {
             AfterSalesRow(label = strings.refundToOrigin, available = receipt.method.afterSales.canRefundToOrigin)
         }
     }
-}
-
-/**
- * Formats the receipt's creation timestamp in the device time zone, e.g. `17 Jul 2026, 13:25`.
- * Month names come from the localized [Strings] catalog; the rest is locale-neutral.
- */
-private fun formatReceiptDate(createdAt: Instant, strings: Strings): String {
-    val local = createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
-    val month = strings.monthAbbreviations[local.month.ordinal]
-    val hour = local.hour.toString().padStart(TIME_COMPONENT_DIGITS, '0')
-    val minute = local.minute.toString().padStart(TIME_COMPONENT_DIGITS, '0')
-    return "${local.day} $month ${local.year}, $hour:$minute"
 }
 
 /** One post-sale operation and whether the receipt's payment method admits it. */

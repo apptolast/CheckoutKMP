@@ -41,9 +41,6 @@ import com.apptolast.checkoutkmp.domain.model.SettlementStatus
 import com.apptolast.checkoutkmp.domain.model.lastUpdatedAt
 import com.apptolast.checkoutkmp.domain.model.settlement
 import com.apptolast.checkoutkmp.presentation.HistoryViewModel
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Instant
 
@@ -186,7 +183,7 @@ private fun TimelineRow(label: String, at: Instant) {
     ) {
         Text(label, style = MaterialTheme.typography.bodyLarge)
         Text(
-            at.formatShort(),
+            formatDateTime(at, LocalStrings.current),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -233,7 +230,7 @@ private fun OrderRow(order: Receipt, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(methodSummary(order.method), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    order.lastUpdatedAt.formatShort(),
+                    formatDateTime(order.lastUpdatedAt, LocalStrings.current),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -274,14 +271,4 @@ private fun settlementColor(status: SettlementStatus): Color = when (status) {
     SettlementStatus.CAPTURED -> extraColors.success
     SettlementStatus.REFUNDED,
     SettlementStatus.VOIDED -> MaterialTheme.colorScheme.onSurfaceVariant
-}
-
-/** Local-time `yyyy-MM-dd HH:mm` — enough for a demo history without a formatting library. */
-private fun Instant.formatShort(): String {
-    val local = toLocalDateTime(TimeZone.currentSystemDefault())
-    val month = local.month.number.toString().padStart(2, '0')
-    val day = local.day.toString().padStart(2, '0')
-    val hour = local.hour.toString().padStart(2, '0')
-    val minute = local.minute.toString().padStart(2, '0')
-    return "${local.year}-$month-$day $hour:$minute"
 }
